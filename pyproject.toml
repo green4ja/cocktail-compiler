@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "cocktail-compiler"
+version = "0.1.0"
+description = ""
+authors = ["green4ja <green4ja@mail.uc.edu>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+requests = "^2.32.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

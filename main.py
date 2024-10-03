@@ -25,7 +25,7 @@ def fetch_and_save_random_cocktail():
     url = "https://www.thecocktaildb.com/api/json/v1/1/random.php"
     existing_cocktail_names = set()
 
-    file_path = 'C:/Users/jag10/OneDrive/Desktop/cocktailDBAPI/Cocktails/Cocktails_Cumulative.csv'
+    file_path = 'C:/Users/jag10/Working/cocktail-compiler/Cocktails_Cumulative.csv'
     if os.path.exists(file_path):
         with open(file_path, mode='r', newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -64,7 +64,7 @@ def fetch_and_save_random_cocktail():
     print("Info: No valid cocktails found after 100 API calls.")
 
 def select_random_stored_cocktail():
-    file_path = 'C:/Users/jag10/OneDrive/Desktop/cocktailDBAPI/Cocktails/Cocktails_Cumulative.csv'
+    file_path = 'C:/Users/jag10/Working/cocktail-compiler/Cocktails_Cumulative.csv'
     if os.path.exists(file_path):
         with open(file_path, mode='r', newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
