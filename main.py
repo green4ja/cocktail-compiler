@@ -93,19 +93,45 @@ def select_random_stored_cocktail():
     else:
         print("Info: No cocktails found in the database.")
 
+def get_top_missing_ingredients():
+    missing_ingredients_file_path = 'C:/Users/jag10/Working/cocktail-compiler/Cocktails_Missing_Ingredients.csv'
+    missing_ingredients_count = {}
+
+    if os.path.exists(missing_ingredients_file_path):
+        with open(missing_ingredients_file_path, mode='r', newline='', encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                missing_ingredients = row['Missing Ingredients'].split(', ')
+                for ingredient in missing_ingredients:
+                    if ingredient in missing_ingredients_count:
+                        missing_ingredients_count[ingredient] += 1
+                    else:
+                        missing_ingredients_count[ingredient] = 1
+
+    sorted_missing_ingredients = sorted(missing_ingredients_count.items(), key=lambda x: x[1], reverse=True)
+    top_missing_ingredients = sorted_missing_ingredients[:3]
+
+    return top_missing_ingredients
+
 def main():
     while True:
         print("\nMenu:")
         print("1. Fetch Random Cocktail")
         print("2. Select Random Stored Cocktail")
-        print("3. Exit")
-        choice = input("Choose an option (1/2/3): ")
+        print("3. Get Top Missing Ingredients")
+        print("4. Exit")
+        choice = input("Choose an option (1/2/3/4): ")
 
         if choice == '1':
             fetch_and_save_random_cocktail()
         elif choice == '2':
             select_random_stored_cocktail()
         elif choice == '3':
+            top_missing_ingredients = get_top_missing_ingredients()
+            print("Top 3 missing ingredients:")
+            for ingredient, count in top_missing_ingredients:
+                print(f"{ingredient}: {count} cocktails")
+        elif choice == '4':
             print("Exiting the program.")
             break
         else:
