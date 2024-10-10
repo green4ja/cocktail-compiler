@@ -26,6 +26,8 @@ def fetch_and_save_random_cocktail():
     existing_cocktail_names = set()
 
     file_path = 'C:/Users/jag10/Working/cocktail-compiler/Cocktails_Cumulative.csv'
+    missing_ingredients_file_path = 'C:/Users/jag10/Working/cocktail-compiler/Cocktails_Missing_Ingredients.csv'
+
     if os.path.exists(file_path):
         with open(file_path, mode='r', newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -35,6 +37,7 @@ def fetch_and_save_random_cocktail():
     api_calls_made = 0
     while api_calls_made < 100:
         response = requests.get(url)
+        print(f"Requests submitted: {api_calls_made}/100", end="\r")
         api_calls_made += 1
 
         if response.status_code == 200:
@@ -43,12 +46,15 @@ def fetch_and_save_random_cocktail():
 
             if drinks:
                 for drink in drinks:
-                    if check_cocktail_validity(drink):
-                        cocktail_name = drink.get("strDrink")
-                        ingredients = [drink.get(f'strIngredient{i}', None) for i in range(1, 16) if
-                                       drink.get(f'strIngredient{i}', None) is not None]
+                    cocktail_name = drink.get("strDrink")
+                    ingredients = [drink.get(f'strIngredient{i}', None) for i in range(1, 16) if
+                                   drink.get(f'strIngredient{i}', None) is not None]
+                    ingredients_lower = [ingredient.lower() for ingredient in ingredients]
 
-                        if cocktail_name not in existing_cocktail_names:
+                    missing_ingredients = [ingredient for ingredient in ingredients_lower if ingredient not in my_ingredients_lower]
+
+                    if cocktail_name not in existing_cocktail_names:
+                        if len(missing_ingredients) == 0:
                             with open(file_path, mode='a', newline='', encoding='utf-8') as csvfile:
                                 writer = csv.writer(csvfile)
                                 if os.stat(file_path).st_size == 0:
@@ -57,7 +63,15 @@ def fetch_and_save_random_cocktail():
                                 writer.writerow([cocktail_name, ', '.join(ingredients)])
                             print(f"Cocktail '{cocktail_name}' saved successfully!")
                             return
+                        elif len(missing_ingredients) == 1:
+                            with open(missing_ingredients_file_path, mode='a', newline='', encoding='utf-8') as csvfile:
+                                writer = csv.writer(csvfile)
+                                if os.stat(missing_ingredients_file_path).st_size == 0:
+                                    writer.writerow(['Cocktail Name', 'Ingredients', 'Missing Ingredients'])
 
+                                writer.writerow([cocktail_name, ', '.join(ingredients), ', '.join(missing_ingredients)])
+                            print(f"Cocktail '{cocktail_name}' with missing ingredients saved successfully!")
+                            return
         else:
             print("Error: Failed to fetch data from the API.")
 
