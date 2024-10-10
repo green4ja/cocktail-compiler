@@ -24,58 +24,60 @@ def check_cocktail_validity(drink):
 def fetch_and_save_random_cocktail():
     url = "https://www.thecocktaildb.com/api/json/v1/1/random.php"
     existing_cocktail_names = set()
+    missing_ingredients_cocktail_names = set()
 
     file_path = 'C:/Users/jag10/Working/cocktail-compiler/Cocktails_Cumulative.csv'
     missing_ingredients_file_path = 'C:/Users/jag10/Working/cocktail-compiler/Cocktails_Missing_Ingredients.csv'
 
+    # Read existing cocktail names from Cocktails_Cumulative.csv
     if os.path.exists(file_path):
         with open(file_path, mode='r', newline='', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
+            reader = csv.reader(csvfile)
+            next(reader, None)  # Skip header
             for row in reader:
-                existing_cocktail_names.add(row['Cocktail Name'])
+                existing_cocktail_names.add(row[0].strip().lower())
 
-    api_calls_made = 0
-    while api_calls_made < 100:
+    # Read existing cocktail names from Cocktails_Missing_Ingredients.csv
+    if os.path.exists(missing_ingredients_file_path):
+        with open(missing_ingredients_file_path, mode='r', newline='', encoding='utf-8') as csvfile:
+            reader = csv.reader(csvfile)
+            next(reader, None)  # Skip header
+            for row in reader:
+                missing_ingredients_cocktail_names.add(row[0].strip().lower())
+
+    for i in range(100):
         response = requests.get(url)
-        print(f"Requests submitted: {api_calls_made}/100", end="\r")
-        api_calls_made += 1
+        drink = response.json()['drinks'][0]
+        cocktail_name = drink['strDrink'].strip()
 
-        if response.status_code == 200:
-            data = response.json()
-            drinks = data.get("drinks", [])
+        cocktail_ingredients = [drink.get(f'strIngredient{i}', None) for i in range(1, 16) if drink.get(f'strIngredient{i}', None) is not None]
+        cocktail_ingredients_lower = [ingredient.lower() for ingredient in cocktail_ingredients]
 
-            if drinks:
-                for drink in drinks:
-                    cocktail_name = drink.get("strDrink")
-                    ingredients = [drink.get(f'strIngredient{i}', None) for i in range(1, 16) if
-                                   drink.get(f'strIngredient{i}', None) is not None]
-                    ingredients_lower = [ingredient.lower() for ingredient in ingredients]
+        print(f"\rRequests submitted: {i+1}/100", end='')
 
-                    missing_ingredients = [ingredient for ingredient in ingredients_lower if ingredient not in my_ingredients_lower]
-
-                    if cocktail_name not in existing_cocktail_names:
-                        if len(missing_ingredients) == 0:
-                            with open(file_path, mode='a', newline='', encoding='utf-8') as csvfile:
-                                writer = csv.writer(csvfile)
-                                if os.stat(file_path).st_size == 0:
-                                    writer.writerow(['Cocktail Name', 'Ingredients'])
-
-                                writer.writerow([cocktail_name, ', '.join(ingredients)])
-                            print(f"Cocktail '{cocktail_name}' saved successfully!")
-                            return
-                        elif len(missing_ingredients) == 1:
-                            with open(missing_ingredients_file_path, mode='a', newline='', encoding='utf-8') as csvfile:
-                                writer = csv.writer(csvfile)
-                                if os.stat(missing_ingredients_file_path).st_size == 0:
-                                    writer.writerow(['Cocktail Name', 'Ingredients', 'Missing Ingredients'])
-
-                                writer.writerow([cocktail_name, ', '.join(ingredients), ', '.join(missing_ingredients)])
-                            print(f"Cocktail '{cocktail_name}' with missing ingredients saved successfully!")
-                            return
+        if cocktail_name.lower() in existing_cocktail_names or cocktail_name.lower() in missing_ingredients_cocktail_names:
+            continue
+        
+        if check_cocktail_validity(drink):
+            with open(file_path, mode='a', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                if os.stat(file_path).st_size == 0:
+                    writer.writerow(['Cocktail Name', 'Ingredients'])
+                writer.writerow([cocktail_name, ', '.join(cocktail_ingredients)])
+            print(f"\nCocktail '{cocktail_name}' saved successfully!")
+            return
         else:
-            print("Error: Failed to fetch data from the API.")
+            missing_ingredients = [ingredient for ingredient in cocktail_ingredients_lower if ingredient not in my_ingredients_lower]
+            if len(missing_ingredients) <= 1:
+                with open(missing_ingredients_file_path, mode='a', newline='', encoding='utf-8') as csvfile:
+                    writer = csv.writer(csvfile)
+                    if os.stat(missing_ingredients_file_path).st_size == 0:
+                        writer.writerow(['Cocktail Name', 'Ingredients', 'Missing Ingredients'])
+                    writer.writerow([cocktail_name, ', '.join(cocktail_ingredients), ', '.join(missing_ingredients)])
+                print(f"\nCocktail '{cocktail_name}' with missing ingredients saved successfully!")
+                return
+                
 
-    print("Info: No valid cocktails found after 100 API calls.")
 
 def select_random_stored_cocktail():
     file_path = 'C:/Users/jag10/Working/cocktail-compiler/Cocktails_Cumulative.csv'
