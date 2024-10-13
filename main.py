@@ -26,8 +26,8 @@ def fetch_and_save_random_cocktail():
     existing_cocktail_names = set()
     missing_ingredients_cocktail_names = set()
 
-    file_path = 'C:/Users/jag10/Working/cocktail-compiler/Cocktails_Cumulative.csv'
-    missing_ingredients_file_path = 'C:/Users/jag10/Working/cocktail-compiler/Cocktails_Missing_Ingredients.csv'
+    file_path = 'C:/Users/jag10/Working/cocktail-compiler/storage/cocktails_complete.csv'
+    missing_ingredients_file_path = 'C:/Users/jag10/Working/cocktail-compiler/storage/cocktails_missing_one.csv'
 
     # Read existing cocktail names from Cocktails_Cumulative.csv
     if os.path.exists(file_path):
@@ -80,7 +80,7 @@ def fetch_and_save_random_cocktail():
 
 
 def select_random_stored_cocktail():
-    file_path = 'C:/Users/jag10/Working/cocktail-compiler/Cocktails_Cumulative.csv'
+    file_path = 'C:/Users/jag10/Working/cocktail-compiler/storage/cocktails_complete.csv'
     if os.path.exists(file_path):
         with open(file_path, mode='r', newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -94,7 +94,7 @@ def select_random_stored_cocktail():
         print("Info: No cocktails found in the database.")
 
 def get_top_missing_ingredients():
-    missing_ingredients_file_path = 'C:/Users/jag10/Working/cocktail-compiler/Cocktails_Missing_Ingredients.csv'
+    missing_ingredients_file_path = 'C:/Users/jag10/Working/cocktail-compiler/storage/cocktails_missing_one.csv'
     missing_ingredients_count = {}
 
     if os.path.exists(missing_ingredients_file_path):
@@ -130,7 +130,7 @@ def main():
             top_missing_ingredients = get_top_missing_ingredients()
             print("Top 3 missing ingredients:")
             for ingredient, count in top_missing_ingredients:
-                print(f"{ingredient}: {count} cocktails")
+                print(f"{ingredient}: {count}")
         elif choice == '4':
             print("Exiting the program.")
             break
