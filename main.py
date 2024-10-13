@@ -2,6 +2,7 @@ import requests
 import csv
 import os
 import random
+from pathlib import Path
 
 my_ingredients = [
     'Vodka', 'Light rum', 'White Rum', 'Gin', 'Bourbon', 'Champagne', 'Cointreau',
@@ -26,8 +27,9 @@ def fetch_and_save_random_cocktail():
     existing_cocktail_names = set()
     missing_ingredients_cocktail_names = set()
 
-    file_path = 'C:/Users/jag10/Working/cocktail-compiler/storage/cocktails_complete.csv'
-    missing_ingredients_file_path = 'C:/Users/jag10/Working/cocktail-compiler/storage/cocktails_missing_one.csv'
+    base_dir = Path(__file__).resolve().parent
+    file_path = base_dir / "storage" / "cocktails_complete.csv"
+    missing_ingredients_file_path = base_dir / "storage" / "cocktails_missing_one.csv"
 
     # Read existing cocktail names from Cocktails_Cumulative.csv
     if os.path.exists(file_path):
@@ -80,7 +82,8 @@ def fetch_and_save_random_cocktail():
 
 
 def select_random_stored_cocktail():
-    file_path = 'C:/Users/jag10/Working/cocktail-compiler/storage/cocktails_complete.csv'
+    base_dir = Path(__file__).resolve().parent
+    file_path = base_dir / "storage" / "cocktails_complete.csv"
     if os.path.exists(file_path):
         with open(file_path, mode='r', newline='', encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -94,7 +97,8 @@ def select_random_stored_cocktail():
         print("Info: No cocktails found in the database.")
 
 def get_top_missing_ingredients():
-    missing_ingredients_file_path = 'C:/Users/jag10/Working/cocktail-compiler/storage/cocktails_missing_one.csv'
+    base_dir = Path(__file__).resolve().parent
+    missing_ingredients_file_path = base_dir / "storage" / "cocktails_missing_one.csv"
     missing_ingredients_count = {}
 
     if os.path.exists(missing_ingredients_file_path):
