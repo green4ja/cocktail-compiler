@@ -1,11 +1,19 @@
+import tkinter
+import tkinter.messagebox
 import customtkinter
-from pages.ingredientsPage import ingredientsPage
-from pages.functionsPage import functionsPage
+import os
+import csv
+import requests
+import random
+import threading
+from pathlib import Path
 
+
+# Set appearance mode and default color theme
 customtkinter.set_appearance_mode("System")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard), "green", "dark-blue"
 
-"""
+
 class ingredientsPage(customtkinter.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
@@ -13,11 +21,11 @@ class ingredientsPage(customtkinter.CTkFrame):
         self.label.pack(pady=20, padx=20)
 
         # Directory of the ingredients file
-        base_dir = Path(__file__).resolve().parents[1]  # Go up two levels to reach the project folder
-        file_path = base_dir / "storage" / "ingredients.csv"
+        self.base_dir = Path(__file__).resolve().parent  # Go up two levels to reach the project folder
+        self.file_path = self.base_dir / "storage" / "ingredients.csv"
 
         # List of ingredients
-        self.ingredients = self.load_ingredients_from_csv(file_path)
+        self.ingredients = self.load_ingredients_from_csv()
 
         # Create a frame to hold the checkboxes
         self.checkbox_frame = customtkinter.CTkScrollableFrame(self)
@@ -35,15 +43,15 @@ class ingredientsPage(customtkinter.CTkFrame):
         self.update_list_button = customtkinter.CTkButton(self, text="Update List", command=self.update_list)
         self.update_list_button.pack(pady=10)
 
-    def load_ingredients_from_csv(self, file_path):
+    def load_ingredients_from_csv(self):
         ingredients = []
         try:
-            with open(file_path, newline='') as csvfile:
+            with open(self.file_path, newline='') as csvfile:
                 reader = csv.reader(csvfile)
                 for row in reader:
                     ingredients.append(row[0])
         except FileNotFoundError:
-            tkinter.messagebox.showerror("Error", f"File {file_path} not found.")
+            tkinter.messagebox.showerror("Error", f"File {self.file_path} not found.")
         return ingredients
 
     def update_list(self):
@@ -54,6 +62,8 @@ class ingredientsPage(customtkinter.CTkFrame):
     def get_ingredients(self):
         return self.update_list()
 
+
+
 class functionsPage(customtkinter.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
@@ -61,17 +71,26 @@ class functionsPage(customtkinter.CTkFrame):
         self.label.pack(pady=20, padx=20)
 
         # Create buttons
-        self.fetch_random_cocktail_button = customtkinter.CTkButton(self, text="Fetch Random Cocktail", command=self.fetch_and_save_random_cocktail)
-        self.select_random_stored_cocktail_button = customtkinter.CTkButton(self, text="Select Random Stored Cocktail")
-        self.get_top_missing_ingredients_button = customtkinter.CTkButton(self, text="Get Top Missing Ingredients")
+        self.fetch_random_cocktail_button = customtkinter.CTkButton(self, text="Fetch Random Cocktail", command=self.start_fetch_random_cocktail_thread)
+        self.select_random_stored_cocktail_button = customtkinter.CTkButton(self, text="Select Random Stored Cocktail", command=self.select_random_stored_cocktail)
+        self.get_top_missing_ingredients_button = customtkinter.CTkButton(self, text="Get Top Missing Ingredients", command=self.get_top_missing_ingredients)
 
         # Pack buttons in a column
         self.fetch_random_cocktail_button.pack(pady=10)
         self.select_random_stored_cocktail_button.pack(pady=10)
         self.get_top_missing_ingredients_button.pack(pady=10)
 
+         # Define base directory and file paths
+        self.base_dir = Path(__file__).resolve().parent
+        self.file_path = self.base_dir / "storage" / "cocktails_complete.csv"
+        self.missing_ingredients_file_path = self.base_dir / "storage" / "cocktails_missing_one.csv"
+
         # Initialize my_ingredients_lower
         self.my_ingredients_lower = [ingredient.lower() for ingredient in master.master.frames['ingredientsPage'].get_ingredients()]
+
+    def start_fetch_random_cocktail_thread(self):
+        thread = threading.Thread(target=self.fetch_and_save_random_cocktail)
+        thread.start()
 
     def check_cocktail_validity(self, drink):
         cocktail_ingredients = [drink.get(f'strIngredient{i}', None) for i in range(1, 16) if drink.get(f'strIngredient{i}', None) is not None]
@@ -84,21 +103,17 @@ class functionsPage(customtkinter.CTkFrame):
         existing_cocktail_names = set()
         missing_ingredients_cocktail_names = set()
 
-        base_dir = Path(__file__).resolve().parents[1]  # Go up two levels to reach the project folder
-        file_path = base_dir / "storage" / "cocktails_complete.csv"
-        missing_ingredients_file_path = base_dir / "storage" / "cocktails_missing_one.csv"
-
         # Read existing cocktail names from Cocktails_Cumulative.csv
-        if os.path.exists(file_path):
-            with open(file_path, mode='r', newline='', encoding='utf-8') as csvfile:
+        if os.path.exists(self.file_path):
+            with open(self.file_path, mode='r', newline='', encoding='utf-8') as csvfile:
                 reader = csv.reader(csvfile)
                 next(reader, None)  # Skip header
                 for row in reader:
                     existing_cocktail_names.add(row[0].strip().lower())
 
         # Read existing cocktail names from Cocktails_Missing_Ingredients.csv
-        if os.path.exists(missing_ingredients_file_path):
-            with open(missing_ingredients_file_path, mode='r', newline='', encoding='utf-8') as csvfile:
+        if os.path.exists(self.missing_ingredients_file_path):
+            with open(self.missing_ingredients_file_path, mode='r', newline='', encoding='utf-8') as csvfile:
                 reader = csv.reader(csvfile)
                 next(reader, None)  # Skip header
                 for row in reader:
@@ -118,9 +133,9 @@ class functionsPage(customtkinter.CTkFrame):
                 continue
             
             if self.check_cocktail_validity(drink):
-                with open(file_path, mode='a', newline='', encoding='utf-8') as csvfile:
+                with open(self.file_path, mode='a', newline='', encoding='utf-8') as csvfile:
                     writer = csv.writer(csvfile)
-                    if os.stat(file_path).st_size == 0:
+                    if os.stat(self.file_path).st_size == 0:
                         writer.writerow(['Cocktail Name', 'Ingredients'])
                     writer.writerow([cocktail_name, ', '.join(cocktail_ingredients)])
                 print(f"\nCocktail '{cocktail_name}' saved successfully!")
@@ -128,15 +143,51 @@ class functionsPage(customtkinter.CTkFrame):
             else:
                 missing_ingredients = [ingredient for ingredient in cocktail_ingredients_lower if ingredient not in self.my_ingredients_lower]
                 if len(missing_ingredients) <= 1:
-                    with open(missing_ingredients_file_path, mode='a', newline='', encoding='utf-8') as csvfile:
+                    with open(self.missing_ingredients_file_path, mode='a', newline='', encoding='utf-8') as csvfile:
                         writer = csv.writer(csvfile)
-                        if os.stat(missing_ingredients_file_path).st_size == 0:
+                        if os.stat(self.missing_ingredients_file_path).st_size == 0:
                             writer.writerow(['Cocktail Name', 'Ingredients', 'Missing Ingredients'])
                         writer.writerow([cocktail_name, ', '.join(cocktail_ingredients), ', '.join(missing_ingredients)])
                     print(f"\nCocktail '{cocktail_name}' with missing ingredients saved successfully!")
                     return
                 
-"""
+    def select_random_stored_cocktail(self): 
+        if os.path.exists(self.file_path):
+            with open(self.file_path, mode='r', newline='', encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                cocktail_names = [row['Cocktail Name'] for row in reader]
+                if cocktail_names:
+                    random_cocktail = random.choice(cocktail_names)
+                    print(f"Selected random cocktail: {random_cocktail}")
+                else:
+                    print("Info: No cocktails found in the database.")
+        else:
+            print("Info: No cocktails found in the database.")
+
+    def get_top_missing_ingredients(self):
+        missing_ingredients_count = {}
+
+        if os.path.exists(self.missing_ingredients_file_path):
+            with open(self.missing_ingredients_file_path, mode='r', newline='', encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    missing_ingredients = row['Missing Ingredients'].split(', ')
+                    for ingredient in missing_ingredients:
+                        if ingredient in missing_ingredients_count:
+                            missing_ingredients_count[ingredient] += 1
+                        else:
+                            missing_ingredients_count[ingredient] = 1
+
+        sorted_missing_ingredients = sorted(missing_ingredients_count.items(), key=lambda x: x[1], reverse=True)
+        top_missing_ingredients = sorted_missing_ingredients[:3]
+        
+        print("Top 3 missing ingredients:")
+        for ingredient, count in top_missing_ingredients:
+            print(f"{ingredient}: {count}")
+
+        return
+
+
 
 class App(customtkinter.CTk):
     def __init__(self):
@@ -166,8 +217,7 @@ class App(customtkinter.CTk):
         self.appearance_mode_label = customtkinter.CTkLabel(self.sidebar_frame, text="Appearance Mode:", anchor="w")
         self.appearance_mode_label.grid(row=5, column=0, padx=20, pady=(10, 0))
 
-        self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["Light", "Dark", "System"],
-                                                                       command=self.change_appearance_mode_event)
+        self.appearance_mode_optionemenu = customtkinter.CTkOptionMenu(self.sidebar_frame, values=["Light", "Dark", "System"], command=self.change_appearance_mode_event)
         self.appearance_mode_optionemenu.grid(row=6, column=0, padx=20, pady=(10, 10))
 
         self.appearance_mode_optionemenu.set("System")
