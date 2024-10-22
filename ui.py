@@ -17,7 +17,7 @@ customtkinter.set_default_color_theme("dark-blue")  # Themes: "blue" (standard),
 class ingredientsPage(customtkinter.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
-        self.label = customtkinter.CTkLabel(self, text="Ingredients", font=("Helvetica", 20, "bold"))
+        self.label = customtkinter.CTkLabel(self, text="Ingredients", font=("Tahoma", 20, "bold"))
         self.label.pack(pady=20, padx=20)
 
         # Directory of the ingredients file
@@ -43,6 +43,10 @@ class ingredientsPage(customtkinter.CTkFrame):
         self.update_list_button = customtkinter.CTkButton(self, text="Update List", command=self.update_list)
         self.update_list_button.pack(pady=10)
 
+        # Create Add Ingreident button
+        self.add_ingredient_button = customtkinter.CTkButton(self, text="Add Ingredient", command=self.add_ingredient)
+        self.add_ingredient_button.pack(pady=10)
+
     def load_ingredients_from_csv(self):
         ingredients = []
         try:
@@ -61,13 +65,31 @@ class ingredientsPage(customtkinter.CTkFrame):
     
     def get_ingredients(self):
         return self.update_list()
+    
+    def add_ingredient(self):
+        ingredient = tkinter.simpledialog.askstring("Add Ingredient", "Enter the ingredient:")
+        url = f"https://www.thecocktaildb.com/api/json/v1/1/search.php?i={ingredient}"
+        response = requests.get(url)
+        if response.json().get("ingredients") is None:
+            tkinter.messagebox.showerror("Error", f"Ingredient '{ingredient}' not found in the database.")
+            return
+        
+        if ingredient:
+            with open(self.file_path, mode='a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerow([ingredient])
+            self.ingredients.append(ingredient)
+            var = customtkinter.StringVar(value="on")
+            checkbox = customtkinter.CTkCheckBox(self.checkbox_frame, text=ingredient, variable=var, onvalue="on", offvalue="off")
+            checkbox.pack(anchor="w", padx=20, pady=5)
+            self.checkboxes[ingredient] = var
 
 
 
 class functionsPage(customtkinter.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
-        self.label = customtkinter.CTkLabel(self, text="Functions", font=("Helvetica", 20, "bold"))
+        self.label = customtkinter.CTkLabel(self, text="Functions", font=("Tahoma", 20, "bold"))
         self.label.pack(pady=20, padx=20)
 
         # Create buttons
@@ -86,7 +108,7 @@ class functionsPage(customtkinter.CTkFrame):
         self.missing_ingredients_file_path = self.base_dir / "storage" / "cocktails_missing_one.csv"
 
         # Initialize my_ingredients_lower
-        self.my_ingredients_lower = [ingredient.lower() for ingredient in master.master.frames['ingredientsPage'].get_ingredients()]
+        self.my_ingredients_lower = [ingredient.lower() for ingredient in self.master.master.frames['ingredientsPage'].get_ingredients()]
 
     def start_fetch_random_cocktail_thread(self):
         thread = threading.Thread(target=self.fetch_and_save_random_cocktail)
@@ -102,6 +124,9 @@ class functionsPage(customtkinter.CTkFrame):
         url = "https://www.thecocktaildb.com/api/json/v1/1/random.php"
         existing_cocktail_names = set()
         missing_ingredients_cocktail_names = set()
+        
+        # Reset ingredients
+        self.my_ingredients_lower = [ingredient.lower() for ingredient in self.master.master.frames['ingredientsPage'].get_ingredients()]
 
         # Read existing cocktail names from Cocktails_Cumulative.csv
         if os.path.exists(self.file_path):
@@ -151,16 +176,24 @@ class functionsPage(customtkinter.CTkFrame):
                     print(f"\nCocktail '{cocktail_name}' with missing ingredients saved successfully!")
                     return
                 
-    def select_random_stored_cocktail(self): 
+    def select_random_stored_cocktail(self):
+        # Reset ingredients
+        self.my_ingredients_lower = [ingredient.lower() for ingredient in self.master.master.frames['ingredientsPage'].get_ingredients()]
+
         if os.path.exists(self.file_path):
             with open(self.file_path, mode='r', newline='', encoding='utf-8') as csvfile:
                 reader = csv.DictReader(csvfile)
-                cocktail_names = [row['Cocktail Name'] for row in reader]
-                if cocktail_names:
-                    random_cocktail = random.choice(cocktail_names)
+                valid_cocktails = []
+                for row in reader:
+                    cocktail_ingredients = [ingredient.strip().lower() for ingredient in row['Ingredients'].split(', ')]
+                    if all(ingredient in self.my_ingredients_lower for ingredient in cocktail_ingredients):
+                        valid_cocktails.append(row['Cocktail Name'])
+                
+                if valid_cocktails:
+                    random_cocktail = random.choice(valid_cocktails)
                     print(f"Selected random cocktail: {random_cocktail}")
                 else:
-                    print("Info: No cocktails found in the database.")
+                    print("Info: No valid cocktails found in the database.")
         else:
             print("Info: No cocktails found in the database.")
 
@@ -205,7 +238,7 @@ class App(customtkinter.CTk):
         self.sidebar_frame = customtkinter.CTkFrame(self, width=140, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
         self.sidebar_frame.grid_rowconfigure(4, weight=1)
-        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="cocktail-compiler", font=("Helvetica", 20, "bold"))
+        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="cocktail-compiler", font=("Tahoma", 20, "bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
         self.sidebar_button_1 = customtkinter.CTkButton(self.sidebar_frame, text="Functions", command=lambda: self.show_frame(functionsPage))
