@@ -1,4 +1,4 @@
-# bartender-gui
+# cocktail-compiler
 
 This repository is used for testing the pumps and Raspberry Pi functionality for the Cocktail Compiler project. The project aims to automate the process of making cocktails using a Raspberry Pi and connected pumps.
 
