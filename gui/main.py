@@ -1,5 +1,6 @@
 import sys
 import os
+import platform
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PyQt6.QtGui import QFontDatabase, QFont
@@ -66,8 +67,21 @@ class GUI(QWidget):
 
         self.show_frame(0)
 
+        # Add exit button
+        self.exit_button = QPushButton("Exit")
+        self.exit_button.setStyleSheet(f"font-family: '{font_family}'; font-size: 14px; font-weight: bold; background-color: #FF0000; color: #FFFFFF; border: 1px solid #3D444D; padding: 5px;")
+        self.exit_button.clicked.connect(self.close_application)
+        self.layout.addWidget(self.exit_button)
+
+        # Check if running on Raspberry Pi and set fullscreen if true
+        if platform.system() == "Linux" and os.uname()[1] == "raspberrypi":
+            self.showFullScreen()
+
     def show_frame(self, index):
         self.stacked_widget.setCurrentIndex(index)
+
+    def close_application(self):
+        QApplication.instance().quit()
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
