@@ -35,7 +35,9 @@ This repository is used for testing the pumps and Raspberry Pi functionality for
 - PyQt6_sip==13.10.0
 - qt6-applications==6.5.0.2.3
 - requests==2.32.3
+- RPi.GPIO==0.7.1
 - urllib3==2.3.0
+  
 
 ## Usage
 
