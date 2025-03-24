@@ -46,4 +46,4 @@ This repository is used for testing the pumps and Raspberry Pi functionality for
     python3 gui/main.py
     ```
 
-**Note:** This project is intended for testing purposes only. Ensure you follow all safety guidelines when working with electrical components and liquids.
+**Note:** Ensure you follow all safety guidelines when working with electrical components and liquids.
