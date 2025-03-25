@@ -1,10 +1,11 @@
+import json
+import threading
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QLineEdit
 from PyQt6.QtCore import QMetaObject, Q_ARG, Qt, pyqtSlot
 from PyQt6.QtGui import QFontDatabase, QFont
 from cocktaildb import cocktaildb
-import json
-import threading
 from .numpad import Numpad
+
 
 class DiscoverPage(QWidget):
     def __init__(self, parent=None):
@@ -343,3 +344,4 @@ class DiscoverPage(QWidget):
         with open("data/cocktails_data.py", "w") as file:
             file.write("cocktail_list = ")
             file.write(json.dumps(self.cocktail_db.cocktail_list, indent=4))
+            

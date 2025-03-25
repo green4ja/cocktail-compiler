@@ -1,9 +1,10 @@
+import threading
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea
 from PyQt6.QtCore import Qt, QMetaObject, Q_ARG, pyqtSlot
 from PyQt6.QtGui import QFontDatabase, QFont
-import threading
 from data.cocktails_data import cocktail_list
 from hardware.bartender import bartender
+
 
 class FunctionsPage(QWidget):
     def __init__(self, parent=None):
@@ -268,3 +269,4 @@ class FunctionsPage(QWidget):
         self.bartender.calibrate_pumps()
         self.log_status("Pumps calibrated successfully.")
         self.enable_buttons()
+        

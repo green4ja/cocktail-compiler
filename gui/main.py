@@ -1,13 +1,13 @@
 import sys
 import os
-import platform
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+import platform
 from PyQt6.QtGui import QFontDatabase, QFont
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QFrame, QLabel, QPushButton, QStackedWidget
 from gui.functions_page import FunctionsPage
 from gui.ingredients_page import IngredientsPage
 from gui.discover_page import DiscoverPage
+
 
 class GUI(QWidget):
     def __init__(self):
@@ -82,6 +82,7 @@ class GUI(QWidget):
 
     def close_application(self):
         QApplication.instance().quit()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

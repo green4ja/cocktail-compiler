@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton
 from PyQt6.QtCore import pyqtSignal, Qt
 
+
 class Numpad(QWidget):
     numpad_input = pyqtSignal(str)
     numpad_clear = pyqtSignal()
@@ -133,3 +134,4 @@ class Numpad(QWidget):
         print("Hide button pressed")  # TODO: Remove this troubleshooting print statement
         self.numpad_hide.emit()
         self.hide()
+        

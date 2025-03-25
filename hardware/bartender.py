@@ -25,11 +25,13 @@ except ImportError:
         def cleanup():
             print("GPIO cleanup()")
 
+
 import time
 import threading
 import data.config as cfg
 from data.cocktails_data import cocktail_list
 from hardware.pump import pump
+
 
 class bartender:
     def __init__(self):

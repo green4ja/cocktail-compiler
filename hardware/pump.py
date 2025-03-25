@@ -25,7 +25,9 @@ except ImportError:
         def cleanup():
             print("GPIO cleanup()")
 
+
 import time
+
 
 class pump:
     def __init__(self, relay_pins=None):
@@ -55,3 +57,4 @@ class pump:
     def turn_off(self, relay_pin=None) -> None:
         if relay_pin is not None:
             GPIO.output(relay_pin, GPIO.LOW)
+            

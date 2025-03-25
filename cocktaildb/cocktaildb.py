@@ -1,6 +1,7 @@
 import requests
-from data.cocktails_data import cocktail_list
 import csv
+from data.cocktails_data import cocktail_list
+
 
 class cocktaildb:
     def __init__(self):
@@ -140,3 +141,4 @@ class cocktaildb:
             attempts += 1
 
         return None
+    
