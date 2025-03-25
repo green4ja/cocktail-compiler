@@ -25,6 +25,10 @@ This repository contains the GUI and control logic for a smart bartender applian
     pip install -r requirements.txt
     ```
 
+## PyQt6 on Raspberry Pi
+
+Setting up PyQt6 on a Raspberry Pi can be somewhat tricky. You will have to install and compile PyQt6 from source, and instructions can be found [here](https://www.linkedin.com/pulse/install-pyqt6-raspberry-pi-5-maryam-del-mar-correa-9phse). Please note that **this process could take several hours** with a microSD card.
+
 ## Dependencies
 
 - certifi==2025.1.31
@@ -38,7 +42,6 @@ This repository contains the GUI and control logic for a smart bartender applian
 - RPi.GPIO==0.7.1
 - urllib3==2.3.0
   
-
 ## Usage
 
 1. Ensure your Raspberry Pi is properly connected to the pumps via GPIO pins.
