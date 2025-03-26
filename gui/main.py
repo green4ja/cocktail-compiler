@@ -1,9 +1,18 @@
 import sys
 import os
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import platform
 from PyQt6.QtGui import QFontDatabase, QFont
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QFrame, QLabel, QPushButton, QStackedWidget
+from PyQt6.QtWidgets import (
+    QApplication,
+    QWidget,
+    QVBoxLayout,
+    QFrame,
+    QLabel,
+    QPushButton,
+    QStackedWidget,
+)
 from gui.functions_page import FunctionsPage
 from gui.ingredients_page import IngredientsPage
 from gui.discover_page import DiscoverPage
@@ -23,7 +32,9 @@ class GUI(QWidget):
             print("Failed to load fonts")
         else:
             font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
-            consolas_font_family = QFontDatabase.applicationFontFamilies(consolas_font_id)[0]
+            consolas_font_family = QFontDatabase.applicationFontFamilies(
+                consolas_font_id
+            )[0]
             print(f"Loaded font families: {font_family}, {consolas_font_family}")
             self.setFont(QFont(font_family))
 
@@ -36,21 +47,29 @@ class GUI(QWidget):
         self.layout.addWidget(self.sidebar_frame)
 
         self.logo_label = QLabel("cocktail-compiler")
-        self.logo_label.setStyleSheet(f"font-family: '{font_family}'; font-size: 26px; font-weight: bold; color: #F0F6FC;")
+        self.logo_label.setStyleSheet(
+            f"font-family: '{font_family}'; font-size: 26px; font-weight: bold; color: #F0F6FC;"
+        )
         self.sidebar_layout.addWidget(self.logo_label)
 
         self.sidebar_button_1 = QPushButton("Functions")
-        self.sidebar_button_1.setStyleSheet(f"font-family: '{font_family}'; font-size: 20px; font-weight: bold; background-color: #151B23; color: #F0F6FC; border: 1px solid #3D444D; padding: 5px;")
+        self.sidebar_button_1.setStyleSheet(
+            f"font-family: '{font_family}'; font-size: 20px; font-weight: bold; background-color: #151B23; color: #F0F6FC; border: 1px solid #3D444D; padding: 5px;"
+        )
         self.sidebar_button_1.clicked.connect(lambda: self.show_frame(0))
         self.sidebar_layout.addWidget(self.sidebar_button_1)
 
         self.sidebar_button_2 = QPushButton("Ingredients")
-        self.sidebar_button_2.setStyleSheet(f"font-family: '{font_family}'; font-size: 20px; font-weight: bold; background-color: #151B23; color: #F0F6FC; border: 1px solid #3D444D; padding: 5px;")
+        self.sidebar_button_2.setStyleSheet(
+            f"font-family: '{font_family}'; font-size: 20px; font-weight: bold; background-color: #151B23; color: #F0F6FC; border: 1px solid #3D444D; padding: 5px;"
+        )
         self.sidebar_button_2.clicked.connect(lambda: self.show_frame(1))
         self.sidebar_layout.addWidget(self.sidebar_button_2)
 
         self.sidebar_button_3 = QPushButton("Discover")
-        self.sidebar_button_3.setStyleSheet(f"font-family: '{font_family}'; font-size: 20px; font-weight: bold; background-color: #151B23; color: #F0F6FC; border: 1px solid #3D444D; padding: 5px;")
+        self.sidebar_button_3.setStyleSheet(
+            f"font-family: '{font_family}'; font-size: 20px; font-weight: bold; background-color: #151B23; color: #F0F6FC; border: 1px solid #3D444D; padding: 5px;"
+        )
         self.sidebar_button_3.clicked.connect(lambda: self.show_frame(2))
         self.sidebar_layout.addWidget(self.sidebar_button_3)
 
@@ -69,7 +88,9 @@ class GUI(QWidget):
 
         # Add exit button
         self.exit_button = QPushButton("Exit")
-        self.exit_button.setStyleSheet(f"font-family: '{font_family}'; font-size: 14px; font-weight: bold; background-color: #FF0000; color: #FFFFFF; border: 1px solid #3D444D; padding: 5px;")
+        self.exit_button.setStyleSheet(
+            f"font-family: '{font_family}'; font-size: 14px; font-weight: bold; background-color: #FF0000; color: #FFFFFF; border: 1px solid #3D444D; padding: 5px;"
+        )
         self.exit_button.clicked.connect(self.close_application)
         self.layout.addWidget(self.exit_button)
 

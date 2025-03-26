@@ -10,12 +10,14 @@ class cocktaildb:
 
         Args:
             None
-        
+
         Returns:
             None
         """
         self.api_key = "1"
-        self.base_api_url = "https://www.thecocktaildb.com/api/json/v1/" + self.api_key + "/"
+        self.base_api_url = (
+            "https://www.thecocktaildb.com/api/json/v1/" + self.api_key + "/"
+        )
         self.random_cocktail_url = self.base_api_url + "random.php"
         self.cocktail_list = cocktail_list
         self.ingredients = self.load_ingredients_from_csv()
@@ -23,10 +25,10 @@ class cocktaildb:
     def load_ingredients_from_csv(self):
         """
         Load the ingredients from the ingredients.csv file.
-        
+
         Args:
             None
-            
+
         Returns:
             set: The set of ingredients.
         """
@@ -48,49 +50,50 @@ class cocktaildb:
             dict: A dictionary containing the cocktail data.
         """
         response = requests.get(self.random_cocktail_url)
-        
+
         if response.status_code == 200:
             return response.json()
         else:
             return {}
-    
+
     def add_cocktail_to_list(self) -> None:
-        """" 
+        """ "
         Add a random cocktail to the cocktail list.
 
         Args:
             None
-        
+
         Returns:
             None
         """
         cocktail_data = self.get_random_cocktail()
-        
+
         # Check if the cocktail data is empty
         if not cocktail_data:
             return
 
-        drink_information = cocktail_data['drinks'][0]
-        drink_name = drink_information['strDrink'].lower()
+        drink_information = cocktail_data["drinks"][0]
+        drink_name = drink_information["strDrink"].lower()
 
         # Check if the cocktail is already in the list
-        if any(c['name'] == drink_name for c in self.cocktail_list):
-            print(f"Cocktail '{drink_name}' already exists in the list.") # TODO: Remove this troubleshooting print statement
+        if any(c["name"] == drink_name for c in self.cocktail_list):
+            print(
+                f"Cocktail '{drink_name}' already exists in the list."
+            )  # TODO: Remove this troubleshooting print statement
             return
 
         ingredients = {}
         for i in range(1, 16):
-            ingredient = drink_information.get(f'strIngredient{i}')
-            measure = drink_information.get(f'strMeasure{i}')
+            ingredient = drink_information.get(f"strIngredient{i}")
+            measure = drink_information.get(f"strMeasure{i}")
 
             # Check if the ingredient is null
             if ingredient and ingredient.strip():
-                ingredients[ingredient.lower()] = measure.strip() if measure and measure.strip() else "0"
+                ingredients[ingredient.lower()] = (
+                    measure.strip() if measure and measure.strip() else "0"
+                )
 
-        new_cocktail = {
-            "name": drink_name,
-            "ingredients": ingredients
-        }
+        new_cocktail = {"name": drink_name, "ingredients": ingredients}
 
         self.cocktail_list.append(new_cocktail)
 
@@ -111,34 +114,32 @@ class cocktaildb:
                 attempts += 1
                 continue
 
-            drink_information = cocktail_data['drinks'][0]
-            drink_name = drink_information['strDrink'].lower()
+            drink_information = cocktail_data["drinks"][0]
+            drink_name = drink_information["strDrink"].lower()
 
             # Check if the cocktail is already in the list
-            if any(c['name'] == drink_name for c in self.cocktail_list):
+            if any(c["name"] == drink_name for c in self.cocktail_list):
                 attempts += 1
                 continue
 
             ingredients = {}
             all_ingredients_present = True
             for i in range(1, 16):
-                ingredient = drink_information.get(f'strIngredient{i}')
-                measure = drink_information.get(f'strMeasure{i}')
+                ingredient = drink_information.get(f"strIngredient{i}")
+                measure = drink_information.get(f"strMeasure{i}")
 
                 if ingredient and ingredient.strip():
                     ingredient_lower = ingredient.lower()
                     if ingredient_lower not in self.ingredients:
                         all_ingredients_present = False
                         break
-                    ingredients[ingredient_lower] = measure.strip() if measure and measure.strip() else "0"
+                    ingredients[ingredient_lower] = (
+                        measure.strip() if measure and measure.strip() else "0"
+                    )
 
             if all_ingredients_present:
-                return {
-                    "name": drink_name,
-                    "ingredients": ingredients
-                }
+                return {"name": drink_name, "ingredients": ingredients}
 
             attempts += 1
 
         return None
-    
