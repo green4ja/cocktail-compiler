@@ -30,7 +30,7 @@ class GUI(QWidget):
         self.setGeometry(100, 100, 480, 800)
 
         # Set the application icon in the taskbar
-        self.setWindowIcon(QIcon("media/images/cocktail_icon.png"))
+        self.setWindowIcon(QIcon("media/images/cocktail_icon_wback.png"))
 
         # Load custom fonts
         font_id = QFontDatabase.addApplicationFont("media/fonts/InterVariable.ttf")
@@ -78,20 +78,25 @@ class GUI(QWidget):
         self.exit_button_top = QPushButton("✕")
         self.exit_button_top.setFixedSize(32, 32)  # Make it square
         self.exit_button_top.setStyleSheet(
-            """
-            QPushButton {
-                font-family: 'Consolas';
-                font-size: 16px;
-                color: #FFFFFF;
+            f"""
+            QPushButton {{
+                font-family: '{font_family}';
+                font-size: 20px;
+                background-color: #151B23;
+                color: #F0F6FC;
+                border: 1px solid #3D444D;
+                padding: 5px;
+            }}
+            QPushButton:hover {{
                 background-color: #FF0000;
+                color: #FFFFFF;
                 border: none;
-            }
-            QPushButton:hover {
+            }}
+            QPushButton:pressed {{
                 background-color: #CC0000;
-            }
-            QPushButton:pressed {
-                background-color: #990000;
-            }
+                color: #FFFFFF;
+                border: none;
+            }}
             """
         )
         self.exit_button_top.clicked.connect(self.close_application)
