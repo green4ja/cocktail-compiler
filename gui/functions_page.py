@@ -1,4 +1,5 @@
 import threading
+import time
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea
 from PyQt6.QtCore import Qt, QMetaObject, Q_ARG, pyqtSlot
 from PyQt6.QtGui import QFontDatabase, QFont
@@ -117,11 +118,17 @@ class FunctionsPage(QWidget):
         Returns:
             None
         """
-        QMetaObject.invokeMethod(
-            self,
-            "add_log_message",
-            Qt.ConnectionType.QueuedConnection,
-            Q_ARG(str, message),
+        label = QLabel(message)
+        label.setWordWrap(True)  # Enable word wrapping to prevent horizontal scrolling
+        label.setStyleSheet(
+            "font-family: 'Consolas'; font-size: 18px; margin: 2px; color: #F0F6FC;"
+        )
+        label.setFixedWidth(
+            self.status_monitor.width() - 20
+        )  # Ensure the text fits within the interaction window
+        self.status_monitor_layout.addWidget(label)
+        self.status_monitor.verticalScrollBar().setValue(
+            self.status_monitor.verticalScrollBar().maximum()
         )
 
     @pyqtSlot(str)
@@ -222,8 +229,110 @@ class FunctionsPage(QWidget):
             None
         """
         self.disable_buttons()
-        self.log_status("Calibrating pumps...")
-        threading.Thread(target=self.calibrate_pumps).start()
+        self.clear_layout(self.status_monitor_layout)
+        self.log_status("Select a pump to calibrate:")
+
+        for i, relay_pin in enumerate(self.bartender.relay_pins):
+            pump_button = QPushButton(f"Calibrate Pump {i + 1}")
+            pump_button.setStyleSheet(
+                "font-family: 'Consolas'; font-size: 20px; padding: 5px; border: 1px solid #3D444D; color: #F0F6FC;"
+            )
+            pump_button.clicked.connect(
+                lambda _, pump_index=i: self.start_pump_calibration(pump_index)
+            )
+            self.status_monitor_layout.addWidget(pump_button)
+
+    def start_pump_calibration(self, pump_index):
+        """
+        Start the calibration process for a specific pump.
+
+        Args:
+            pump_index (int): The index of the pump to calibrate.
+
+        Returns:
+            None
+        """
+        self.clear_layout(self.status_monitor_layout)
+        self.log_status(f"Calibrating Pump {pump_index + 1}. Tap 'Start' to begin.")
+
+        start_button = QPushButton("Start")
+        start_button.setStyleSheet(
+            "font-family: 'Consolas'; font-size: 20px; padding: 5px; border: 1px solid #3D444D; color: #F0F6FC;"
+        )
+        start_button.clicked.connect(lambda: self.start_pump_timer(pump_index))
+        self.status_monitor_layout.addWidget(start_button)
+
+    def start_pump_timer(self, pump_index):
+        """
+        Start the timer and activate the pump.
+
+        Args:
+            pump_index (int): The index of the pump to calibrate.
+
+        Returns:
+            None
+        """
+        self.clear_layout(self.status_monitor_layout)
+        self.log_status("Pump is running. Tap 'Stop' when water starts flowing.")
+
+        self.calibration_start_time = time.time()
+        self.bartender.pump.turn_on(self.bartender.relay_pins[pump_index])
+
+        stop_button = QPushButton("Stop")
+        stop_button.setStyleSheet(
+            "font-family: 'Consolas'; font-size: 20px; padding: 5px; border: 1px solid #3D444D; color: #F0F6FC;"
+        )
+        stop_button.clicked.connect(lambda: self.stop_pump_timer(pump_index))
+        self.status_monitor_layout.addWidget(stop_button)
+
+    def stop_pump_timer(self, pump_index):
+        """
+        Stop the timer, deactivate the pump, and save the calibration time.
+
+        Args:
+            pump_index (int): The index of the pump to calibrate.
+
+        Returns:
+            None
+        """
+        self.bartender.pump.turn_off(self.bartender.relay_pins[pump_index])
+        elapsed_time = round(time.time() - self.calibration_start_time, 2)
+
+        self.clear_layout(
+            self.status_monitor_layout
+        )  # Clear the layout to remove the Stop button
+        self.log_status(
+            f"Calibration time for Pump {pump_index + 1}: {elapsed_time} seconds."
+        )
+        self.save_calibration_time(pump_index, elapsed_time)
+
+        self.log_status("Calibration complete. You can select another pump or exit.")
+
+        back_button = QPushButton("Back to Pump Selection")
+        back_button.setStyleSheet(
+            "font-family: 'Consolas'; font-size: 20px; padding: 5px; border: 1px solid #3D444D; color: #F0F6FC;"
+        )
+        back_button.clicked.connect(self.run_calibrate_pumps)
+        self.status_monitor_layout.addWidget(back_button)
+
+    def save_calibration_time(self, pump_index, elapsed_time):
+        """
+        Save the calibration time to the config file.
+
+        Args:
+            pump_index (int): The index of the pump.
+            elapsed_time (float): The calibration time in seconds.
+
+        Returns:
+            None
+        """
+        self.bartender.tube_fill_times[pump_index] = elapsed_time
+
+        # Update the config.py file
+        with open("data/config.py", "w") as file:
+            file.write("TUBE_FILL_TIMES = ")
+            file.write(str(self.bartender.tube_fill_times))
+        self.log_status(f"Calibration time saved for Pump {pump_index + 1}.")
 
     def test_relays(self):
         """
