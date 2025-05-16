@@ -92,9 +92,31 @@ class FunctionsPage(QWidget):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         label = QLabel("Select a cocktail:")
-        label.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+        label.setStyleSheet(
+            "font-family: 'Consolas'; font-size: 22px; font-weight: bold; color: #F0F6FC;"
+        )
         layout.addWidget(label)
         list_widget = QListWidget()
+        list_widget.setStyleSheet(
+            """
+            QListWidget {
+                background-color: #151B23;
+                border: 1px solid #3D444D;
+            }
+            QListWidget::item {
+                font-family: 'Consolas';
+                font-size: 20px;
+                padding: 8px;
+                color: #F0F6FC;
+                background-color: #151B23;
+                border-bottom: 1px solid #3D444D;
+            }
+            QListWidget::item:selected {
+                background-color: #238636;
+                color: #FFFFFF;
+            }
+            """
+        )
         for cocktail in cocktail_list:
             item = QListWidgetItem(cocktail["name"].title())
             list_widget.addItem(item)
@@ -146,15 +168,43 @@ class FunctionsPage(QWidget):
     def calibrate_pumps_confirm(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
+        layout.setSpacing(10)  # Reduce vertical spacing between widgets
+        layout.setContentsMargins(0, 80, 0, 0)  # Add top margin to center content vertically
+
         label = QLabel("Are you sure you want to calibrate the pumps?")
-        label.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+        label.setStyleSheet(
+            "font-family: 'Consolas'; font-size: 22px; font-weight: bold; color: #F0F6FC;"
+        )
+        label.setWordWrap(True)
+        label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(label)
+
         btn_layout = QHBoxLayout()
         yes_btn = QPushButton("Yes")
         no_btn = QPushButton("No")
+        for btn in [yes_btn, no_btn]:
+            btn.setStyleSheet(
+                """
+                QPushButton {
+                    font-family: 'Consolas';
+                    font-size: 20px;
+                    font-weight: bold;
+                    padding: 5px;
+                    border: 1px solid #3D444D;
+                    background-color: #151B23;
+                    color: #F0F6FC;
+                }
+                QPushButton:pressed {
+                    background-color: #238636;
+                }
+                """
+            )
+            btn.setFixedHeight(40)
+            btn.setFixedWidth(100)
         btn_layout.addWidget(yes_btn)
         btn_layout.addWidget(no_btn)
         layout.addLayout(btn_layout)
+        layout.addStretch()  # Push content towards vertical center
         self.dynamic_area.addWidget(widget)
         self.dynamic_area.setCurrentWidget(widget)
 
@@ -168,40 +218,83 @@ class FunctionsPage(QWidget):
 
     def calibrate_next_pump(self):
         if self.calibration_index >= len(self.bartender.relay_pins):
-            # Show summary and ask to save
             self.show_calibration_summary()
             return
 
         widget = QWidget()
         layout = QVBoxLayout(widget)
+        layout.setSpacing(10)
+        layout.setContentsMargins(0, 80, 0, 0)
+
         pump_num = self.calibration_index + 1
         total = len(self.bartender.relay_pins)
         label = QLabel(f"Calibrating Pump {pump_num}/{total}")
-        label.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+        label.setStyleSheet(
+            "font-family: 'Consolas'; font-size: 22px; font-weight: bold; color: #F0F6FC;"
+        )
+        label.setWordWrap(True)
+        label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(label)
-        start_btn = QPushButton("Start")
-        layout.addWidget(start_btn)
+
+        # Center widget for timer and button
+        center_widget = QWidget()
+        center_layout = QVBoxLayout(center_widget)
+        center_layout.setSpacing(10)
+        center_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+
+        # Timer label (always present, but blank when not running)
+        timer_label = QLabel("")
+        timer_label.setStyleSheet(
+            "font-family: 'Consolas'; font-size: 20px; color: #F0F6FC;"
+        )
+        timer_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        timer_label.setMinimumHeight(30)  # Reserve space for timer
+        center_layout.addWidget(timer_label, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        # Action button (text and function will change)
+        action_btn = QPushButton("Start")
+        action_btn.setStyleSheet(
+            """
+            QPushButton {
+                font-family: 'Consolas';
+                font-size: 20px;
+                font-weight: bold;
+                padding: 5px;
+                border: 1px solid #3D444D;
+                background-color: #151B23;
+                color: #F0F6FC;
+            }
+            QPushButton:pressed {
+                background-color: #238636;
+            }
+            """
+        )
+        action_btn.setFixedHeight(40)
+        action_btn.setFixedWidth(100)
+        center_layout.addWidget(action_btn, alignment=Qt.AlignmentFlag.AlignHCenter)
+
+        layout.addWidget(center_widget, alignment=Qt.AlignmentFlag.AlignHCenter)
+        layout.addStretch()
         self.dynamic_area.addWidget(widget)
         self.dynamic_area.setCurrentWidget(widget)
 
+        self._timer_running = False
+
         def start_timer():
-            layout.removeWidget(start_btn)
-            start_btn.deleteLater()
-            timer_label = QLabel("Timer: 0.00s")
-            timer_label.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
-            layout.addWidget(timer_label)
-            stop_btn = QPushButton("Stop")
-            layout.addWidget(stop_btn)
+            action_btn.setText("Stop")
+            timer_label.setText("Timer: 0.00s")
             start_time = time.time()
             self.bartender.pump.turn_on(self.bartender.relay_pins[self.calibration_index])
+            self._timer_running = True
 
             def update_timer():
+                if not self._timer_running:
+                    return
                 elapsed = time.time() - start_time
                 timer_label.setText(f"Timer: {elapsed:.2f}s")
-                if hasattr(self, "_timer_running") and self._timer_running:
+                if self._timer_running:
                     QTimer.singleShot(50, update_timer)
 
-            self._timer_running = True
             update_timer()
 
             def stop_timer():
@@ -210,30 +303,66 @@ class FunctionsPage(QWidget):
                 elapsed = time.time() - start_time
                 self.calibration_times[self.calibration_index] = round(elapsed, 2)
                 self.calibration_index += 1
+                # Reset button and timer for next pump
+                timer_label.setText("")  # Leave the label blank, but keep its space
+                action_btn.setText("Start")
+                action_btn.clicked.disconnect()
+                action_btn.clicked.connect(start_timer)
                 self.calibrate_next_pump()
 
-            stop_btn.clicked.connect(stop_timer)
+            # Change button to stop function
+            action_btn.clicked.disconnect()
+            action_btn.clicked.connect(stop_timer)
 
-        start_btn.clicked.connect(start_timer)
+        # Initial connection: start function
+        action_btn.clicked.connect(start_timer)
 
     def show_calibration_summary(self):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         summary_label = QLabel("Calibration Results:")
-        summary_label.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+        summary_label.setStyleSheet(
+            "font-family: 'Consolas'; font-size: 22px; font-weight: bold; color: #F0F6FC;"
+        )
+        summary_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(summary_label)
         # Show each pump's time
         for i, t in enumerate(self.calibration_times):
             pump_label = QLabel(f"Pump {i+1}: {t:.2f}s")
-            pump_label.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+            pump_label.setStyleSheet(
+                "font-family: 'Consolas'; font-size: 20px; color: #F0F6FC;"
+            )
+            pump_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
             layout.addWidget(pump_label)
         # Save prompt
         prompt = QLabel("Would you like to save this calibration?")
-        prompt.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC; margin-top: 10px;")
+        prompt.setStyleSheet(
+            "font-family: 'Consolas'; font-size: 20px; color: #F0F6FC; margin-top: 10px;"
+        )
+        prompt.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         layout.addWidget(prompt)
         btn_layout = QHBoxLayout()
         yes_btn = QPushButton("Yes")
         no_btn = QPushButton("No")
+        for btn in [yes_btn, no_btn]:
+            btn.setStyleSheet(
+                """
+                QPushButton {
+                    font-family: 'Consolas';
+                    font-size: 20px;
+                    font-weight: bold;
+                    padding: 5px;
+                    border: 1px solid #3D444D;
+                    background-color: #151B23;
+                    color: #F0F6FC;
+                }
+                QPushButton:pressed {
+                    background-color: #238636;
+                }
+                """
+            )
+            btn.setFixedHeight(40)
+            btn.setFixedWidth(100)
         btn_layout.addWidget(yes_btn)
         btn_layout.addWidget(no_btn)
         layout.addLayout(btn_layout)
