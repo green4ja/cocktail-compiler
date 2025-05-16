@@ -1,405 +1,253 @@
 import threading
 import time
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QScrollArea
-from PyQt6.QtCore import Qt, QMetaObject, Q_ARG, pyqtSlot
+from PyQt6.QtWidgets import (
+    QWidget, QVBoxLayout, QLabel, QPushButton, QStackedWidget, QHBoxLayout, QListWidget, QListWidgetItem
+)
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFontDatabase, QFont
 from data.cocktails_data import cocktail_list
 from hardware.bartender import bartender
 
-
 class FunctionsPage(QWidget):
     def __init__(self, parent=None):
-        """
-        Initialize the FunctionsPage class with the parent widget.
-
-        Args:
-            parent (QWidget): The parent widget
-
-        Returns:
-            None
-        """
         super().__init__(parent)
 
         # Load custom fonts
         font_id = QFontDatabase.addApplicationFont("media/fonts/InterVariable.ttf")
         consolas_font_id = QFontDatabase.addApplicationFont("media/fonts/Consolas.ttf")
-        if font_id == -1 or consolas_font_id == -1:
-            print("Failed to load fonts")
-        else:
-            font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
-            consolas_font_family = QFontDatabase.applicationFontFamilies(
-                consolas_font_id
-            )[0]
-            print(f"Loaded font families: {font_family}, {consolas_font_family}")
-            self.setFont(QFont(font_family))
+        font_family = QFontDatabase.applicationFontFamilies(font_id)[0] if font_id != -1 else "Arial"
+        consolas_font_family = QFontDatabase.applicationFontFamilies(consolas_font_id)[0] if consolas_font_id != -1 else "Consolas"
+        self.setFont(QFont(font_family))
 
+        self.bartender = bartender()
+        self.calibration_index = 0
+        self.calibration_times = [0] * len(self.bartender.relay_pins)
+
+        # Main layout
         self.layout = QVBoxLayout(self)
 
-        self.label = QLabel("Options")
-        self.label.setStyleSheet(
-            f"font-family: '{font_family}'; font-size: 22px; font-weight: bold; color: #F0F6FC;"
-        )
-        self.layout.addWidget(self.label)
-
+        # Four main buttons
         self.test_relays_btn = QPushButton("Test Relays")
-        self.test_relays_btn.setStyleSheet(
-            f"font-family: '{font_family}'; font-size: 20px; font-weight: bold; background-color: #151B23; color: #F0F6FC; border: 1px solid #3D444D; padding: 5px;"
-        )
-        self.test_relays_btn.clicked.connect(self.run_test_relays)
-        self.layout.addWidget(self.test_relays_btn)
-
-        self.clean_tubes_btn = QPushButton("Clean Tube")
-        self.clean_tubes_btn.setStyleSheet(
-            f"font-family: '{font_family}'; font-size: 20px; font-weight: bold; background-color: #151B23; color: #F0F6FC; border: 1px solid #3D444D; padding: 5px;"
-        )
-        self.clean_tubes_btn.clicked.connect(self.run_clean_tubes)
-        self.layout.addWidget(self.clean_tubes_btn)
-
+        self.clean_tubes_btn = QPushButton("Clean Tubes")
         self.make_cocktail_btn = QPushButton("Make Cocktail")
-        self.make_cocktail_btn.setStyleSheet(
-            f"font-family: '{font_family}'; font-size: 20px; font-weight: bold; background-color: #151B23; color: #F0F6FC; border: 1px solid #3D444D; padding: 5px;"
-        )
-        self.make_cocktail_btn.clicked.connect(self.run_make_cocktail)
-        self.layout.addWidget(self.make_cocktail_btn)
-
         self.calibrate_pumps_btn = QPushButton("Calibrate Pumps")
-        self.calibrate_pumps_btn.setStyleSheet(
-            f"font-family: '{font_family}'; font-size: 20px; font-weight: bold; background-color: #151B23; color: #F0F6FC; border: 1px solid #3D444D; padding: 5px;"
-        )
-        self.calibrate_pumps_btn.clicked.connect(self.run_calibrate_pumps)
-        self.layout.addWidget(self.calibrate_pumps_btn)
-
-        self.status_monitor = QScrollArea()
-        self.status_monitor.setWidgetResizable(True)
-        self.status_monitor_widget = QWidget()
-        self.status_monitor_layout = QVBoxLayout(self.status_monitor_widget)
-        self.status_monitor.setWidget(self.status_monitor_widget)
-        self.layout.addWidget(self.status_monitor)
-
-        self.bartender = bartender()  # Create an instance of the bartender class
-
-    def disable_buttons(self):
-        """
-        Disable the buttons on the FunctionsPage.
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-        self.test_relays_btn.setEnabled(False)
-        self.clean_tubes_btn.setEnabled(False)
-        self.make_cocktail_btn.setEnabled(False)
-        self.calibrate_pumps_btn.setEnabled(False)
-
-    def enable_buttons(self):
-        """
-        Enable the buttons on the FunctionsPage.
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-        self.test_relays_btn.setEnabled(True)
-        self.clean_tubes_btn.setEnabled(True)
-        self.make_cocktail_btn.setEnabled(True)
-        self.calibrate_pumps_btn.setEnabled(True)
-
-    def log_status(self, message):
-        """
-        Log a status message to the status monitor.
-
-        Args:
-            message (str): The message to log
-
-        Returns:
-            None
-        """
-        label = QLabel(message)
-        label.setWordWrap(True)  # Enable word wrapping to prevent horizontal scrolling
-        label.setStyleSheet(
-            "font-family: 'Consolas'; font-size: 18px; margin: 2px; color: #F0F6FC;"
-        )
-        label.setFixedWidth(
-            self.status_monitor.width() - 20
-        )  # Ensure the text fits within the interaction window
-        self.status_monitor_layout.addWidget(label)
-        self.status_monitor.verticalScrollBar().setValue(
-            self.status_monitor.verticalScrollBar().maximum()
-        )
-
-    @pyqtSlot(str)
-    def add_log_message(self, message):
-        """
-        Add a log message to the status monitor.
-
-        Args:
-            message (str): The message to log
-
-        Returns:
-            None
-        """
-        label = QLabel(message)
-        label.setStyleSheet(
-            "font-family: 'Consolas'; font-size: 18px; margin: 2px; color: #F0F6FC;"
-        )
-        self.status_monitor_layout.addWidget(label)
-        self.status_monitor.verticalScrollBar().setValue(
-            self.status_monitor.verticalScrollBar().maximum()
-        )
-
-    def run_test_relays(self):
-        """
-        Run the test relays functionality.
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-        self.disable_buttons()
-        self.log_status("Testing relays...")
-        threading.Thread(target=self.test_relays).start()
-
-    def run_clean_tubes(self):
-        """
-        Run the clean tubes functionality.
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-        self.disable_buttons()
-        self.log_status("Cleaning tubes...")
-        threading.Thread(target=self.clean_tubes).start()
-
-    def clear_layout(self, layout):
-        """
-        Clear the specified layout.
-
-        Args:
-            layout (QLayout): The layout to clear.
-
-        Returns:
-            None
-        """
-        if layout is not None:
-            while layout.count():
-                child = layout.takeAt(0)
-                if child.widget() is not None:
-                    child.widget().deleteLater()
-
-    def run_make_cocktail(self):
-        """
-        Run the make cocktail functionality.
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-        self.disable_buttons()
-        self.clear_layout(self.status_monitor_layout)
-
-        for cocktail in cocktail_list:
-            label = QLabel(cocktail["name"])
-            label.setStyleSheet(
-                "font-family: 'Consolas'; font-size: 22px; padding: 5px; border: 1px solid #3D444D; color: #F0F6FC;"
+        for btn in [self.test_relays_btn, self.clean_tubes_btn, self.make_cocktail_btn, self.calibrate_pumps_btn]:
+            btn.setStyleSheet(
+                f"font-family: '{font_family}'; font-size: 20px; font-weight: bold; background-color: #151B23; color: #F0F6FC; border: 1px solid #3D444D; padding: 5px;"
             )
-            label.mousePressEvent = lambda event, name=cocktail[
-                "name"
-            ]: self.start_make_cocktail_thread(name)
-            self.status_monitor_layout.addWidget(label)
+            self.layout.addWidget(btn)
 
-    def run_calibrate_pumps(self):
-        """
-        Run the calibrate pumps functionality.
+        # Dynamic area below buttons
+        self.dynamic_area = QStackedWidget()
+        self.layout.addWidget(self.dynamic_area)
+        self.empty_widget = QWidget()
+        self.dynamic_area.addWidget(self.empty_widget)
+        self.dynamic_area.setCurrentWidget(self.empty_widget)
 
-        Args:
-            None
+        # Connect buttons
+        self.test_relays_btn.clicked.connect(self.test_relays)
+        self.clean_tubes_btn.clicked.connect(self.clean_tubes)
+        self.make_cocktail_btn.clicked.connect(self.show_cocktail_list)
+        self.calibrate_pumps_btn.clicked.connect(self.calibrate_pumps_confirm)
 
-        Returns:
-            None
-        """
-        self.disable_buttons()
-        self.clear_layout(self.status_monitor_layout)
-        self.log_status("Select a pump to calibrate:")
+    def reset_dynamic_area(self):
+        self.dynamic_area.setCurrentWidget(self.empty_widget)
 
-        for i, relay_pin in enumerate(self.bartender.relay_pins):
-            pump_button = QPushButton(f"Calibrate Pump {i + 1}")
-            pump_button.setStyleSheet(
-                "font-family: 'Consolas'; font-size: 20px; padding: 5px; border: 1px solid #3D444D; color: #F0F6FC;"
-            )
-            pump_button.clicked.connect(
-                lambda _, pump_index=i: self.start_pump_calibration(pump_index)
-            )
-            self.status_monitor_layout.addWidget(pump_button)
-
-    def start_pump_calibration(self, pump_index):
-        """
-        Start the calibration process for a specific pump.
-
-        Args:
-            pump_index (int): The index of the pump to calibrate.
-
-        Returns:
-            None
-        """
-        self.clear_layout(self.status_monitor_layout)
-        self.log_status(f"Calibrating Pump {pump_index + 1}. Tap 'Start' to begin.")
-
-        start_button = QPushButton("Start")
-        start_button.setStyleSheet(
-            "font-family: 'Consolas'; font-size: 20px; padding: 5px; border: 1px solid #3D444D; color: #F0F6FC;"
-        )
-        start_button.clicked.connect(lambda: self.start_pump_timer(pump_index))
-        self.status_monitor_layout.addWidget(start_button)
-
-    def start_pump_timer(self, pump_index):
-        """
-        Start the timer and activate the pump.
-
-        Args:
-            pump_index (int): The index of the pump to calibrate.
-
-        Returns:
-            None
-        """
-        self.clear_layout(self.status_monitor_layout)
-        self.log_status("Pump is running. Tap 'Stop' when water starts flowing.")
-
-        self.calibration_start_time = time.time()
-        self.bartender.pump.turn_on(self.bartender.relay_pins[pump_index])
-
-        stop_button = QPushButton("Stop")
-        stop_button.setStyleSheet(
-            "font-family: 'Consolas'; font-size: 20px; padding: 5px; border: 1px solid #3D444D; color: #F0F6FC;"
-        )
-        stop_button.clicked.connect(lambda: self.stop_pump_timer(pump_index))
-        self.status_monitor_layout.addWidget(stop_button)
-
-    def stop_pump_timer(self, pump_index):
-        """
-        Stop the timer, deactivate the pump, and save the calibration time.
-
-        Args:
-            pump_index (int): The index of the pump to calibrate.
-
-        Returns:
-            None
-        """
-        self.bartender.pump.turn_off(self.bartender.relay_pins[pump_index])
-        elapsed_time = round(time.time() - self.calibration_start_time, 2)
-
-        self.clear_layout(
-            self.status_monitor_layout
-        )  # Clear the layout to remove the Stop button
-        self.log_status(
-            f"Calibration time for Pump {pump_index + 1}: {elapsed_time} seconds."
-        )
-        self.save_calibration_time(pump_index, elapsed_time)
-
-        self.log_status("Calibration complete. You can select another pump or exit.")
-
-        back_button = QPushButton("Back to Pump Selection")
-        back_button.setStyleSheet(
-            "font-family: 'Consolas'; font-size: 20px; padding: 5px; border: 1px solid #3D444D; color: #F0F6FC;"
-        )
-        back_button.clicked.connect(self.run_calibrate_pumps)
-        self.status_monitor_layout.addWidget(back_button)
-
-    def save_calibration_time(self, pump_index, elapsed_time):
-        """
-        Save the calibration time to the config file.
-
-        Args:
-            pump_index (int): The index of the pump.
-            elapsed_time (float): The calibration time in seconds.
-
-        Returns:
-            None
-        """
-        self.bartender.tube_fill_times[pump_index] = elapsed_time
-
-        # Update the config.py file
-        with open("data/config.py", "w") as file:
-            file.write("TUBE_FILL_TIMES = ")
-            file.write(str(self.bartender.tube_fill_times))
-        self.log_status(f"Calibration time saved for Pump {pump_index + 1}.")
-
+    # --- Test Relays ---
     def test_relays(self):
-        """
-        Test the relays.
+        message = QLabel("")
+        message.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.addWidget(message)
+        self.dynamic_area.addWidget(widget)
+        self.dynamic_area.setCurrentWidget(widget)
 
-        Args:
-            None
+        def run_test():
+            for i, pin in enumerate(self.bartender.relay_pins):
+                QTimer.singleShot(0, lambda p=pin: message.setText(f"Testing relay corresponding to GPIO {p}."))
+                self.bartender.pump.turn_on(pin, 1)
+            QTimer.singleShot(0, self.reset_dynamic_area)
 
-        Returns:
-            None
-        """
-        self.bartender.test_relays()
-        self.log_status("Relays tested successfully.")
-        self.enable_buttons()
+        threading.Thread(target=run_test).start()
 
+    # --- Clean Tubes ---
     def clean_tubes(self):
-        """
-        Clean the tubes.
+        message = QLabel("Cleaning Tubes...")
+        message.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.addWidget(message)
+        self.dynamic_area.addWidget(widget)
+        self.dynamic_area.setCurrentWidget(widget)
 
-        Args:
-            None
+        def run_clean():
+            self.bartender.clean_tubes()
+            QTimer.singleShot(0, self.reset_dynamic_area)
 
-        Returns:
-            None
-        """
-        self.bartender.clean_tubes()
-        self.log_status("Tubes cleaned successfully.")
-        self.enable_buttons()
+        threading.Thread(target=run_clean).start()
 
-    def start_make_cocktail_thread(self, cocktail_name):
-        """
-        Start a thread to make a cocktail.
+    # --- Make Cocktail ---
+    def show_cocktail_list(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        label = QLabel("Select a cocktail:")
+        label.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+        layout.addWidget(label)
+        list_widget = QListWidget()
+        for cocktail in cocktail_list:
+            item = QListWidgetItem(cocktail["name"].title())
+            list_widget.addItem(item)
+        layout.addWidget(list_widget)
+        self.dynamic_area.addWidget(widget)
+        self.dynamic_area.setCurrentWidget(widget)
 
-        Args:
-            cocktail_name (str): The name of the cocktail to make.
+        def on_item_clicked(item):
+            cocktail_name = item.text().lower()
+            self.dynamic_area.removeWidget(widget)
+            self.make_cocktail(cocktail_name)
 
-        Returns:
-            None
-        """
-        self.disable_buttons()
-        threading.Thread(target=self.make_cocktail, args=(cocktail_name,)).start()
+        list_widget.itemClicked.connect(on_item_clicked)
 
     def make_cocktail(self, cocktail_name):
-        """
-        Make a cocktail.
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        self.dynamic_area.addWidget(widget)
+        self.dynamic_area.setCurrentWidget(widget)
 
-        Args:
-            cocktail_name (str): The name of the cocktail to make.
+        cocktail = next((c for c in cocktail_list if c["name"] == cocktail_name), None)
+        if not cocktail:
+            layout.addWidget(QLabel("Cocktail not found."))
+            QTimer.singleShot(2000, self.reset_dynamic_area)
+            return
 
-        Returns:
-            None
-        """
-        self.clear_layout(self.status_monitor_layout)
-        self.bartender.cocktail_to_pump(cocktail_name)
-        self.log_status(f"Cocktail {cocktail_name} made successfully.")
-        self.enable_buttons()
+        threads = []
+        for i, (ingredient, amount) in enumerate(cocktail["ingredients"].items()):
+            if i >= len(self.bartender.relay_pins):
+                break
+            relay_pin = self.bartender.relay_pins[i]
+            time_to_pour = self.bartender.convert_oz_to_sec(amount, i)
+            msg = f"Pump {i+1} - Dispensing {amount} oz of {ingredient.title()} ETA: {time_to_pour:.1f}s"
+            label = QLabel(msg)
+            label.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+            layout.addWidget(label)
+            thread = threading.Thread(target=self.bartender.pump.turn_on, args=(relay_pin, time_to_pour))
+            threads.append(thread)
+            thread.start()
 
-    def calibrate_pumps(self):
-        """
-        Calibrate the pumps.
+        def finish():
+            for t in threads:
+                t.join()
+            QTimer.singleShot(0, self.reset_dynamic_area)
 
-        Args:
-            None
+        threading.Thread(target=finish).start()
 
-        Returns:
-            None
-        """
-        self.bartender.calibrate_pumps()
-        self.log_status("Pumps calibrated successfully.")
-        self.enable_buttons()
+    # --- Calibrate Pumps ---
+    def calibrate_pumps_confirm(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        label = QLabel("Are you sure you want to calibrate the pumps?")
+        label.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+        layout.addWidget(label)
+        btn_layout = QHBoxLayout()
+        yes_btn = QPushButton("Yes")
+        no_btn = QPushButton("No")
+        btn_layout.addWidget(yes_btn)
+        btn_layout.addWidget(no_btn)
+        layout.addLayout(btn_layout)
+        self.dynamic_area.addWidget(widget)
+        self.dynamic_area.setCurrentWidget(widget)
+
+        yes_btn.clicked.connect(self.start_calibration)
+        no_btn.clicked.connect(self.reset_dynamic_area)
+
+    def start_calibration(self):
+        self.calibration_index = 0
+        self.calibration_times = [0] * len(self.bartender.relay_pins)
+        self.calibrate_next_pump()
+
+    def calibrate_next_pump(self):
+        if self.calibration_index >= len(self.bartender.relay_pins):
+            # Show summary and ask to save
+            self.show_calibration_summary()
+            return
+
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        pump_num = self.calibration_index + 1
+        total = len(self.bartender.relay_pins)
+        label = QLabel(f"Calibrating Pump {pump_num}/{total}")
+        label.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+        layout.addWidget(label)
+        start_btn = QPushButton("Start")
+        layout.addWidget(start_btn)
+        self.dynamic_area.addWidget(widget)
+        self.dynamic_area.setCurrentWidget(widget)
+
+        def start_timer():
+            layout.removeWidget(start_btn)
+            start_btn.deleteLater()
+            timer_label = QLabel("Timer: 0.00s")
+            timer_label.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+            layout.addWidget(timer_label)
+            stop_btn = QPushButton("Stop")
+            layout.addWidget(stop_btn)
+            start_time = time.time()
+            self.bartender.pump.turn_on(self.bartender.relay_pins[self.calibration_index])
+
+            def update_timer():
+                elapsed = time.time() - start_time
+                timer_label.setText(f"Timer: {elapsed:.2f}s")
+                if hasattr(self, "_timer_running") and self._timer_running:
+                    QTimer.singleShot(50, update_timer)
+
+            self._timer_running = True
+            update_timer()
+
+            def stop_timer():
+                self._timer_running = False
+                self.bartender.pump.turn_off(self.bartender.relay_pins[self.calibration_index])
+                elapsed = time.time() - start_time
+                self.calibration_times[self.calibration_index] = round(elapsed, 2)
+                self.calibration_index += 1
+                self.calibrate_next_pump()
+
+            stop_btn.clicked.connect(stop_timer)
+
+        start_btn.clicked.connect(start_timer)
+
+    def show_calibration_summary(self):
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        summary_label = QLabel("Calibration Results:")
+        summary_label.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+        layout.addWidget(summary_label)
+        # Show each pump's time
+        for i, t in enumerate(self.calibration_times):
+            pump_label = QLabel(f"Pump {i+1}: {t:.2f}s")
+            pump_label.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+            layout.addWidget(pump_label)
+        # Save prompt
+        prompt = QLabel("Would you like to save this calibration?")
+        prompt.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC; margin-top: 10px;")
+        layout.addWidget(prompt)
+        btn_layout = QHBoxLayout()
+        yes_btn = QPushButton("Yes")
+        no_btn = QPushButton("No")
+        btn_layout.addWidget(yes_btn)
+        btn_layout.addWidget(no_btn)
+        layout.addLayout(btn_layout)
+        self.dynamic_area.addWidget(widget)
+        self.dynamic_area.setCurrentWidget(widget)
+
+        def save_and_exit():
+            with open("data/config.py", "w") as file:
+                file.write("TUBE_FILL_TIMES = ")
+                file.write(str(self.calibration_times))
+            self.reset_dynamic_area()
+
+        def discard_and_exit():
+            self.reset_dynamic_area()
+
+        yes_btn.clicked.connect(save_and_exit)
+        no_btn.clicked.connect(discard_and_exit)
