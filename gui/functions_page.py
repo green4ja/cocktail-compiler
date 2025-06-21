@@ -18,12 +18,10 @@ from hardware.bartender import bartender
 
 # TODO: Developer Notes
 #
-# 1. Change "Clean Tubes" timer to be based on calibration time plus a margin for error.
-# 2. Figure out why all ingredients dont start dispensing at the same time on "Make Cocktail" function.
+# 1. Figure out why all ingredients dont start dispensing at the same time on "Make Cocktail" function.
 #   - Worked correctly first time making moscow mule after startup, then after cleaning tubes and trying again,
 #     it started dispensing one, then waited and then started the other two.
-# 3. Add an intermediate screen for "Make Cocktail" to show what ingredient should be on each pump before dispensing.
-# 4. Change "Clean Tubes" to allow the user to select which pump to clean, or all pumps, in order to avoid dry running.
+#
 
 
 class FunctionsPage(QWidget):
@@ -122,7 +120,9 @@ class FunctionsPage(QWidget):
 
         # Create toggleable buttons for each pump
         pump_buttons = []
-        selected_pumps = set(range(len(self.bartender.relay_pins)))  # All selected by default
+        selected_pumps = set(
+            range(len(self.bartender.relay_pins))
+        )  # All selected by default
 
         for i, relay_pin in enumerate(self.bartender.relay_pins):
             btn = QPushButton(f"Pump {i+1} (GPIO {relay_pin})")
@@ -148,9 +148,13 @@ class FunctionsPage(QWidget):
                 }
                 """
             )
+
             # Toggle selection
             def make_toggle(idx):
-                return lambda checked: selected_pumps.add(idx) if checked else selected_pumps.discard(idx)
+                return lambda checked: (
+                    selected_pumps.add(idx) if checked else selected_pumps.discard(idx)
+                )
+
             btn.toggled.connect(make_toggle(i))
             layout.addWidget(btn)
             pump_buttons.append(btn)
@@ -188,12 +192,16 @@ class FunctionsPage(QWidget):
             for i in pumps_to_clean:
                 relay_pin = self.bartender.relay_pins[i]
                 clean_time = self.bartender.tube_fill_times[i] + margin
-                info_lines.append(f"Pump {i+1} (GPIO {relay_pin}): Cleaning for {clean_time:.2f} seconds")
+                info_lines.append(
+                    f"Pump {i+1} (GPIO {relay_pin}): Cleaning for {clean_time:.2f} seconds"
+                )
             # Show cleaning message
             cleaning_widget = QWidget()
             cleaning_layout = QVBoxLayout(cleaning_widget)
             message = QLabel("Cleaning Tubes...\n" + "\n".join(info_lines))
-            message.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+            message.setStyleSheet(
+                "font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;"
+            )
             cleaning_layout.addWidget(message)
             self.dynamic_area.addWidget(cleaning_widget)
             self.dynamic_area.setCurrentWidget(cleaning_widget)
@@ -272,30 +280,88 @@ class FunctionsPage(QWidget):
             QTimer.singleShot(2000, self.reset_dynamic_area)
             return
 
-        threads = []
+        # --- Intermediate screen: show pump assignments ---
+        info_label = QLabel("Attach ingredients to the correct pump lines:")
+        info_label.setStyleSheet(
+            "font-family: 'Consolas'; font-size: 20px; font-weight: bold; color: #F0F6FC;"
+        )
+        info_label.setWordWrap(True)
+        layout.addWidget(info_label)
+
+        pump_labels = []
         for i, (ingredient, amount) in enumerate(cocktail["ingredients"].items()):
             if i >= len(self.bartender.relay_pins):
                 break
             relay_pin = self.bartender.relay_pins[i]
-            time_to_pour = self.bartender.convert_oz_to_sec(amount, i)
-            msg = f"Pump {i+1} - Dispensing {amount} oz of {ingredient.title()} ETA: {time_to_pour:.1f}s"
-            label = QLabel(msg)
-            label.setStyleSheet(
+            pump_label = QLabel(
+                f"Pump {i+1} (GPIO {relay_pin}): {ingredient.title()} ({amount} oz)"
+            )
+            pump_label.setStyleSheet(
                 "font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;"
             )
-            layout.addWidget(label)
-            thread = threading.Thread(
-                target=self.bartender.pump.turn_on, args=(relay_pin, time_to_pour)
-            )
-            threads.append(thread)
-            thread.start()
+            pump_label.setWordWrap(True)
+            layout.addWidget(pump_label)
+            pump_labels.append(pump_label)
 
-        def finish():
-            for t in threads:
-                t.join()
-            QTimer.singleShot(0, self.reset_dynamic_area)
+        start_btn = QPushButton("Start Pour")
+        start_btn.setStyleSheet(
+            """
+            QPushButton {
+                font-family: 'Consolas';
+                font-size: 20px;
+                font-weight: bold;
+                padding: 5px;
+                border: 1px solid #3D444D;
+                background-color: #151B23;
+                color: #F0F6FC;
+            }
+            QPushButton:pressed {
+                background-color: #238636;
+            }
+            """
+        )
+        layout.addWidget(start_btn)
 
-        threading.Thread(target=finish).start()
+        def start_pour():
+            # Remove all widgets from layout
+            for i in reversed(range(layout.count())):
+                widget_to_remove = layout.itemAt(i).widget()
+                if widget_to_remove:
+                    widget_to_remove.setParent(None)
+
+            # --- Pouring status screen ---
+            pour_labels = []
+            threads = []
+            for i, (ingredient, amount) in enumerate(cocktail["ingredients"].items()):
+                if i >= len(self.bartender.relay_pins):
+                    break
+                relay_pin = self.bartender.relay_pins[i]
+                time_to_pour = self.bartender.convert_oz_to_sec(amount, i)
+                msg = (
+                    f"Pump {i+1} - Dispensing {amount} oz of {ingredient.title()} "
+                    f"ETA: {time_to_pour:.1f}s"
+                )
+                label = QLabel(msg)
+                label.setStyleSheet(
+                    "font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;"
+                )
+                label.setWordWrap(True)
+                layout.addWidget(label)
+                pour_labels.append(label)
+                thread = threading.Thread(
+                    target=self.bartender.pump.turn_on, args=(relay_pin, time_to_pour)
+                )
+                threads.append(thread)
+                thread.start()
+
+            def finish():
+                for t in threads:
+                    t.join()
+                QTimer.singleShot(0, self.reset_dynamic_area)
+
+            threading.Thread(target=finish).start()
+
+        start_btn.clicked.connect(start_pour)
 
     # --- Calibrate Pumps ---
     def calibrate_pumps_confirm(self):
