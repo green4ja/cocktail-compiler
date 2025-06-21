@@ -1,12 +1,30 @@
 import threading
 import time
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QPushButton, QStackedWidget, QHBoxLayout, QListWidget, QListWidgetItem
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QPushButton,
+    QStackedWidget,
+    QHBoxLayout,
+    QListWidget,
+    QListWidgetItem,
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFontDatabase, QFont
 from data.cocktails_data import cocktail_list
 from hardware.bartender import bartender
+
+
+# TODO: Developer Notes
+#
+# 1. Change "Clean Tubes" timer to be based on calibration time plus a margin for error.
+# 2. Figure out why all ingredients dont start dispensing at the same time on "Make Cocktail" function.
+#   - Worked correctly first time making moscow mule after startup, then after cleaning tubes and trying again,
+#     it started dispensing one, then waited and then started the other two.
+# 3. Add an intermediate screen for "Make Cocktail" to show what ingredient should be on each pump before dispensing.
+# 4. Change "Clean Tubes" to allow the user to select which pump to clean, or all pumps, in order to avoid dry running.
+
 
 class FunctionsPage(QWidget):
     def __init__(self, parent=None):
@@ -15,8 +33,16 @@ class FunctionsPage(QWidget):
         # Load custom fonts
         font_id = QFontDatabase.addApplicationFont("media/fonts/InterVariable.ttf")
         consolas_font_id = QFontDatabase.addApplicationFont("media/fonts/Consolas.ttf")
-        font_family = QFontDatabase.applicationFontFamilies(font_id)[0] if font_id != -1 else "Arial"
-        consolas_font_family = QFontDatabase.applicationFontFamilies(consolas_font_id)[0] if consolas_font_id != -1 else "Consolas"
+        font_family = (
+            QFontDatabase.applicationFontFamilies(font_id)[0]
+            if font_id != -1
+            else "Arial"
+        )
+        consolas_font_family = (
+            QFontDatabase.applicationFontFamilies(consolas_font_id)[0]
+            if consolas_font_id != -1
+            else "Consolas"
+        )
         self.setFont(QFont(font_family))
 
         self.bartender = bartender()
@@ -31,7 +57,12 @@ class FunctionsPage(QWidget):
         self.clean_tubes_btn = QPushButton("Clean Tubes")
         self.make_cocktail_btn = QPushButton("Make Cocktail")
         self.calibrate_pumps_btn = QPushButton("Calibrate Pumps")
-        for btn in [self.test_relays_btn, self.clean_tubes_btn, self.make_cocktail_btn, self.calibrate_pumps_btn]:
+        for btn in [
+            self.test_relays_btn,
+            self.clean_tubes_btn,
+            self.make_cocktail_btn,
+            self.calibrate_pumps_btn,
+        ]:
             btn.setStyleSheet(
                 f"font-family: '{font_family}'; font-size: 20px; font-weight: bold; background-color: #151B23; color: #F0F6FC; border: 1px solid #3D444D; padding: 5px;"
             )
@@ -56,7 +87,9 @@ class FunctionsPage(QWidget):
     # --- Test Relays ---
     def test_relays(self):
         message = QLabel("")
-        message.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+        message.setStyleSheet(
+            "font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;"
+        )
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.addWidget(message)
@@ -65,7 +98,12 @@ class FunctionsPage(QWidget):
 
         def run_test():
             for i, pin in enumerate(self.bartender.relay_pins):
-                QTimer.singleShot(0, lambda p=pin: message.setText(f"Testing relay corresponding to GPIO {p}."))
+                QTimer.singleShot(
+                    0,
+                    lambda p=pin: message.setText(
+                        f"Testing relay corresponding to GPIO {p}."
+                    ),
+                )
                 self.bartender.pump.turn_on(pin, 1)
             QTimer.singleShot(0, self.reset_dynamic_area)
 
@@ -74,7 +112,9 @@ class FunctionsPage(QWidget):
     # --- Clean Tubes ---
     def clean_tubes(self):
         message = QLabel("Cleaning Tubes...")
-        message.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+        message.setStyleSheet(
+            "font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;"
+        )
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.addWidget(message)
@@ -151,9 +191,13 @@ class FunctionsPage(QWidget):
             time_to_pour = self.bartender.convert_oz_to_sec(amount, i)
             msg = f"Pump {i+1} - Dispensing {amount} oz of {ingredient.title()} ETA: {time_to_pour:.1f}s"
             label = QLabel(msg)
-            label.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+            label.setStyleSheet(
+                "font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;"
+            )
             layout.addWidget(label)
-            thread = threading.Thread(target=self.bartender.pump.turn_on, args=(relay_pin, time_to_pour))
+            thread = threading.Thread(
+                target=self.bartender.pump.turn_on, args=(relay_pin, time_to_pour)
+            )
             threads.append(thread)
             thread.start()
 
@@ -169,7 +213,9 @@ class FunctionsPage(QWidget):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         layout.setSpacing(10)  # Reduce vertical spacing between widgets
-        layout.setContentsMargins(0, 80, 0, 0)  # Add top margin to center content vertically
+        layout.setContentsMargins(
+            0, 80, 0, 0
+        )  # Add top margin to center content vertically
 
         label = QLabel("Are you sure you want to calibrate the pumps?")
         label.setStyleSheet(
@@ -284,7 +330,9 @@ class FunctionsPage(QWidget):
             action_btn.setText("Stop")
             timer_label.setText("Timer: 0.00s")
             start_time = time.time()
-            self.bartender.pump.turn_on(self.bartender.relay_pins[self.calibration_index])
+            self.bartender.pump.turn_on(
+                self.bartender.relay_pins[self.calibration_index]
+            )
             self._timer_running = True
 
             def update_timer():
@@ -299,7 +347,9 @@ class FunctionsPage(QWidget):
 
             def stop_timer():
                 self._timer_running = False
-                self.bartender.pump.turn_off(self.bartender.relay_pins[self.calibration_index])
+                self.bartender.pump.turn_off(
+                    self.bartender.relay_pins[self.calibration_index]
+                )
                 elapsed = time.time() - start_time
                 self.calibration_times[self.calibration_index] = round(elapsed, 2)
                 self.calibration_index += 1

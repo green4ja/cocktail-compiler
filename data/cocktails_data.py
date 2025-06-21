@@ -7,6 +7,14 @@ cocktail_list = [
             "lime juice": 0.5
         }
     },
+        {
+        "name": "negroni",
+        "ingredients": {
+            "gin": 1.0,
+            "sweet vermouth": 1.0,
+            "campari": 1.0
+        }
+    },
     {
         "name": "gin and tonic",
         "ingredients": {
