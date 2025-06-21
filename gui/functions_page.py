@@ -111,39 +111,110 @@ class FunctionsPage(QWidget):
 
     # --- Clean Tubes ---
     def clean_tubes(self):
-        message = QLabel()
-        message.setStyleSheet(
-            "font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;"
-        )
+        # --- Pump selection UI ---
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        layout.addWidget(message)
+        label = QLabel("Select Pumps to Clean")
+        label.setStyleSheet(
+            "font-family: 'Consolas'; font-size: 20px; font-weight: bold; color: #F0F6FC;"
+        )
+        layout.addWidget(label)
+
+        # Create toggleable buttons for each pump
+        pump_buttons = []
+        selected_pumps = set(range(len(self.bartender.relay_pins)))  # All selected by default
+
+        for i, relay_pin in enumerate(self.bartender.relay_pins):
+            btn = QPushButton(f"Pump {i+1} (GPIO {relay_pin})")
+            btn.setCheckable(True)
+            btn.setChecked(True)
+            btn.setStyleSheet(
+                """
+                QPushButton {
+                    font-family: 'Consolas';
+                    font-size: 18px;
+                    padding: 5px;
+                    border: 1px solid #3D444D;
+                    background-color: #238636;
+                    color: #F0F6FC;
+                }
+                QPushButton:checked {
+                    background-color: #238636;
+                    color: #F0F6FC;
+                }
+                QPushButton:!checked {
+                    background-color: #151B23;
+                    color: #F0F6FC;
+                }
+                """
+            )
+            # Toggle selection
+            def make_toggle(idx):
+                return lambda checked: selected_pumps.add(idx) if checked else selected_pumps.discard(idx)
+            btn.toggled.connect(make_toggle(i))
+            layout.addWidget(btn)
+            pump_buttons.append(btn)
+
+        # Start Cleaning button
+        start_btn = QPushButton("Start Cleaning")
+        start_btn.setStyleSheet(
+            """
+            QPushButton {
+                font-family: 'Consolas';
+                font-size: 20px;
+                font-weight: bold;
+                padding: 5px;
+                border: 1px solid #3D444D;
+                background-color: #151B23;
+                color: #F0F6FC;
+            }
+            QPushButton:pressed {
+                background-color: #238636;
+            }
+            """
+        )
+        layout.addWidget(start_btn)
         self.dynamic_area.addWidget(widget)
         self.dynamic_area.setCurrentWidget(widget)
 
-        margin = 1  # seconds
-        info_lines = []
-        for i, relay_pin in enumerate(self.bartender.relay_pins):
-            clean_time = self.bartender.tube_fill_times[i] + margin
-            info_lines.append(f"Pump {i+1} (GPIO {relay_pin}): Cleaning for {clean_time:.2f} seconds")
-        # Set the message before starting the thread
-        full_message = "Cleaning Tubes...\n" + "\n".join(info_lines)
-        message.setText(full_message)
-
-        def run_clean():
-            threads = []
-            for i, relay_pin in enumerate(self.bartender.relay_pins):
+        def start_cleaning():
+            # Only clean selected pumps
+            margin = 1  # seconds
+            info_lines = []
+            pumps_to_clean = sorted(selected_pumps)
+            if not pumps_to_clean:
+                # If none selected, do nothing or show a message
+                return
+            for i in pumps_to_clean:
+                relay_pin = self.bartender.relay_pins[i]
                 clean_time = self.bartender.tube_fill_times[i] + margin
-                thread = threading.Thread(
-                    target=self.bartender.pump.turn_on, args=(relay_pin, clean_time)
-                )
-                threads.append(thread)
-                thread.start()
-            for thread in threads:
-                thread.join()
-            QTimer.singleShot(0, self.reset_dynamic_area)
+                info_lines.append(f"Pump {i+1} (GPIO {relay_pin}): Cleaning for {clean_time:.2f} seconds")
+            # Show cleaning message
+            cleaning_widget = QWidget()
+            cleaning_layout = QVBoxLayout(cleaning_widget)
+            message = QLabel("Cleaning Tubes...\n" + "\n".join(info_lines))
+            message.setStyleSheet("font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;")
+            cleaning_layout.addWidget(message)
+            self.dynamic_area.addWidget(cleaning_widget)
+            self.dynamic_area.setCurrentWidget(cleaning_widget)
 
-        threading.Thread(target=run_clean).start()
+            def run_clean():
+                threads = []
+                for i in pumps_to_clean:
+                    relay_pin = self.bartender.relay_pins[i]
+                    clean_time = self.bartender.tube_fill_times[i] + margin
+                    thread = threading.Thread(
+                        target=self.bartender.pump.turn_on, args=(relay_pin, clean_time)
+                    )
+                    threads.append(thread)
+                    thread.start()
+                for thread in threads:
+                    thread.join()
+                QTimer.singleShot(0, self.reset_dynamic_area)
+
+            threading.Thread(target=run_clean).start()
+
+        start_btn.clicked.connect(start_cleaning)
 
     # --- Make Cocktail ---
     def show_cocktail_list(self):
