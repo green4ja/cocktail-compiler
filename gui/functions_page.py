@@ -182,12 +182,10 @@ class FunctionsPage(QWidget):
         self.dynamic_area.setCurrentWidget(widget)
 
         def start_cleaning():
-            # Only clean selected pumps
             margin = 1  # seconds
             info_lines = []
             pumps_to_clean = sorted(selected_pumps)
             if not pumps_to_clean:
-                # If none selected, do nothing or show a message
                 return
             for i in pumps_to_clean:
                 relay_pin = self.bartender.relay_pins[i]
@@ -206,21 +204,19 @@ class FunctionsPage(QWidget):
             self.dynamic_area.addWidget(cleaning_widget)
             self.dynamic_area.setCurrentWidget(cleaning_widget)
 
-            def run_clean():
-                threads = []
-                for i in pumps_to_clean:
-                    relay_pin = self.bartender.relay_pins[i]
-                    clean_time = self.bartender.tube_fill_times[i] + margin
-                    thread = threading.Thread(
-                        target=self.bartender.pump.turn_on, args=(relay_pin, clean_time)
-                    )
-                    threads.append(thread)
-                    thread.start()
-                for thread in threads:
-                    thread.join()
-                QTimer.singleShot(0, self.reset_dynamic_area)
+            # Turn on all pumps at once, then schedule each to turn off
+            for i in pumps_to_clean:
+                relay_pin = self.bartender.relay_pins[i]
+                clean_time = self.bartender.tube_fill_times[i] + margin
+                self.bartender.pump.turn_on(relay_pin)  # Non-blocking: just turns on
+                QTimer.singleShot(
+                    int(clean_time * 1000),
+                    lambda pin=relay_pin: self.bartender.pump.turn_off(pin)
+                )
 
-            threading.Thread(target=run_clean).start()
+            # Schedule reset after the longest clean time
+            max_time = max([self.bartender.tube_fill_times[i] + margin for i in pumps_to_clean])
+            QTimer.singleShot(int(max_time * 1000), self.reset_dynamic_area)
 
         start_btn.clicked.connect(start_cleaning)
 
@@ -347,19 +343,19 @@ class FunctionsPage(QWidget):
                 )
                 label.setWordWrap(True)
                 layout.addWidget(label)
-                pour_labels.append(label)
-                thread = threading.Thread(
-                    target=self.bartender.pump.turn_on, args=(relay_pin, time_to_pour)
+                # Non-blocking: turn on pump
+                self.bartender.pump.turn_on(relay_pin)
+                # Schedule turn off
+                QTimer.singleShot(
+                    int(time_to_pour * 1000),
+                    lambda pin=relay_pin: self.bartender.pump.turn_off(pin)
                 )
-                threads.append(thread)
-                thread.start()
 
-            def finish():
-                for t in threads:
-                    t.join()
-                QTimer.singleShot(0, self.reset_dynamic_area)
-
-            threading.Thread(target=finish).start()
+            # Schedule reset after the longest pour time
+            max_time = max([self.bartender.convert_oz_to_sec(amount, i)
+                            for i, (ingredient, amount) in enumerate(cocktail["ingredients"].items())
+                            if i < len(self.bartender.relay_pins)])
+            QTimer.singleShot(int(max_time * 1000), self.reset_dynamic_area)
 
         start_btn.clicked.connect(start_pour)
 
