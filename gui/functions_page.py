@@ -111,7 +111,7 @@ class FunctionsPage(QWidget):
 
     # --- Clean Tubes ---
     def clean_tubes(self):
-        message = QLabel("Cleaning Tubes...")
+        message = QLabel()
         message.setStyleSheet(
             "font-family: 'Consolas'; font-size: 18px; color: #F0F6FC;"
         )
@@ -121,8 +121,26 @@ class FunctionsPage(QWidget):
         self.dynamic_area.addWidget(widget)
         self.dynamic_area.setCurrentWidget(widget)
 
+        margin = 1  # seconds
+        info_lines = []
+        for i, relay_pin in enumerate(self.bartender.relay_pins):
+            clean_time = self.bartender.tube_fill_times[i] + margin
+            info_lines.append(f"Pump {i+1} (GPIO {relay_pin}): Cleaning for {clean_time:.2f} seconds")
+        # Set the message before starting the thread
+        full_message = "Cleaning Tubes...\n" + "\n".join(info_lines)
+        message.setText(full_message)
+
         def run_clean():
-            self.bartender.clean_tubes()
+            threads = []
+            for i, relay_pin in enumerate(self.bartender.relay_pins):
+                clean_time = self.bartender.tube_fill_times[i] + margin
+                thread = threading.Thread(
+                    target=self.bartender.pump.turn_on, args=(relay_pin, clean_time)
+                )
+                threads.append(thread)
+                thread.start()
+            for thread in threads:
+                thread.join()
             QTimer.singleShot(0, self.reset_dynamic_area)
 
         threading.Thread(target=run_clean).start()
