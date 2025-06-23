@@ -1,5 +1,6 @@
 import threading
 import time
+import functools
 from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -211,7 +212,7 @@ class FunctionsPage(QWidget):
                 self.bartender.pump.turn_on(relay_pin)  # Non-blocking: just turns on
                 QTimer.singleShot(
                     int(clean_time * 1000),
-                    lambda pin=relay_pin: self.bartender.pump.turn_off(pin)
+                    functools.partial(self.bartender.pump.turn_off, relay_pin)
                 )
 
             # Schedule reset after the longest clean time
@@ -348,7 +349,7 @@ class FunctionsPage(QWidget):
                 # Schedule turn off
                 QTimer.singleShot(
                     int(time_to_pour * 1000),
-                    lambda pin=relay_pin: self.bartender.pump.turn_off(pin)
+                    functools.partial(self.bartender.pump.turn_off, relay_pin)
                 )
 
             # Schedule reset after the longest pour time
