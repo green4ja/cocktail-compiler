@@ -1,5 +1,6 @@
 <template>
   <q-page class="flex flex-center">
+    <NavigationBox></NavigationBox>
     <img
       alt="Quasar logo"
       src="~assets/quasar-logo-vertical.svg"
@@ -9,5 +10,5 @@
 </template>
 
 <script setup>
-//
+import NavigationBox from 'components/NavigationBox.vue'
 </script>
