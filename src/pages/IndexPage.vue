@@ -1,14 +1,15 @@
 <template>
-  <q-page class="flex flex-center">
+  <div class="component-space">
     <NavigationBox></NavigationBox>
-    <img
-      alt="Quasar logo"
-      src="~assets/quasar-logo-vertical.svg"
-      style="width: 200px; height: 200px"
-    />
-  </q-page>
+  </div>
 </template>
 
 <script setup>
 import NavigationBox from 'components/NavigationBox.vue'
 </script>
+
+<style scoped>
+.component-space {
+  padding: 20px;
+}
+</style>

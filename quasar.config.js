@@ -78,7 +78,20 @@ export default defineConfig((/* ctx */) => {
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
     framework: {
-      config: {},
+      config: {
+        brand: {
+          'github-zero': '#f0f6fc',
+          'github-one': '#c9d1d9',
+          'github-two': '#b1bac4',
+          'github-three': '#8b949e',
+          'github-four': '#6e7681',
+          'github-five': '#484f58',
+          'github-six': '#30363d',
+          'github-seven': '#21262d',
+          'github-eight': '#161b22',
+          'github-nine': '#0d1117'
+        }
+      },
 
       // iconSet: 'material-icons', // Quasar icon set
       // lang: 'en-US', // Quasar language pack
