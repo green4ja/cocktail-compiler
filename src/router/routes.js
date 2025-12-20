@@ -3,7 +3,26 @@ const routes = [
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', component: () => import('pages/IndexPage.vue') }
+      // {
+      //   path: '',
+      //   component: () => import('pages/IndexPage.vue'),
+      // },
+      // {
+      //   path: 'bartender',
+      //   component: () => import('pages/BartenderPage.vue'),
+      // },
+      // {
+      //   path: 'ingredients',
+      //   component: () => import('pages/IngredientsPage.vue'),
+      // },
+      // {
+      //   path: 'discover',
+      //   component: () => import('pages/DiscoverPage.vue'),
+      // },
+      // {
+      //   path: 'troubleshooting',
+      //   component: () => import('pages/TroubleshootingPage.vue'),
+      // },
     ],
   },
   // Always leave this as last one,

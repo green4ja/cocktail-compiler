@@ -20,7 +20,7 @@
 .navigation-box {
   width: 100%;
   box-sizing: border-box;
-  outline: 2px solid #f0f6fc;
+  outline: 2px solid #b1bac4;
   padding: 20px;
   background-color: #30363d;
 }
