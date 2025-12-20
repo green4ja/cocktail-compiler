@@ -2,7 +2,7 @@
   <q-layout view="lHh Lpr lFf">
     <q-page-container>
       <div class="main-content">
-        <NavigationBox/>
+        <NavigationBox style="margin-bottom: 20px;"/>
         <router-view />
       </div>
     </q-page-container>
@@ -16,5 +16,9 @@ import NavigationBox from 'components/NavigationBox.vue'
 <style scoped>
 .main-content {
   padding: 20px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 </style>
