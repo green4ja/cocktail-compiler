@@ -1,0 +1,26 @@
+// app global css in SCSS form
+@import './quasar.variables.scss';
+
+body {
+  background-color: #0d1117;
+}
+
+@each $name, $color in (
+  github-zero: $github-zero,
+  github-one: $github-one,
+  github-two: $github-two,
+  github-three: $github-three,
+  github-four: $github-four,
+  github-five: $github-five,
+  github-six: $github-six,
+  github-seven: $github-seven,
+  github-eight: $github-eight,
+  github-nine: $github-nine
+) {
+  .text-#{$name} {
+    color: $color !important;
+  }
+  .bg-#{$name} {
+    background-color: $color !important;
+  }
+}
